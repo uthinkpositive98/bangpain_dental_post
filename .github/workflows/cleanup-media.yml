@@ -1,0 +1,46 @@
+name: Clean up old media
+
+# Keeps video/voice storage in Releases under a budget by deleting the OLDEST episode releases first.
+# Runs weekly (Monday 03:13 Bangkok) and can be run by hand from the Actions tab.
+on:
+  schedule:
+    - cron: "13 20 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  LIMIT_MB: 900        # start deleting when release media goes above this
+  TARGET_MB: 700       # delete until below this
+  KEEP_NEWEST: 3       # never delete the newest N episodes
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete oldest releases while over budget
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh api "repos/$REPO/releases?per_page=100" --paginate \
+            --jq '.[] | [.tag_name, .created_at, ([.assets[].size] | add // 0)] | @tsv' \
+            | sort -k2 > releases.tsv
+          total=$(awk -F'\t' '{s+=$3} END {print int(s/1048576)}' releases.tsv)
+          count=$(wc -l < releases.tsv)
+          repo_kb=$(gh api "repos/$REPO" --jq .size)
+          echo "Release media: ${total} MB in ${count} releases. Git repo: $((repo_kb/1024)) MB."
+          if [ "$repo_kb" -gt 900000 ]; then
+            echo "::warning::Git repository itself is over ~880 MB; old images in history need a manual cleanup."
+          fi
+          if [ "$total" -le "$LIMIT_MB" ]; then echo "Under budget, nothing to delete."; exit 0; fi
+          deletable=$((count - KEEP_NEWEST))
+          while IFS=$'\t' read -r tag created size; do
+            [ "$total" -le "$TARGET_MB" ] && break
+            [ "$deletable" -le 0 ] && break
+            echo "Deleting $tag (created $created, $((size/1048576)) MB)"
+            gh release delete "$tag" --repo "$REPO" --cleanup-tag --yes
+            total=$((total - size/1048576)); deletable=$((deletable - 1))
+          done < releases.tsv
+          echo "Release media now ~${total} MB."

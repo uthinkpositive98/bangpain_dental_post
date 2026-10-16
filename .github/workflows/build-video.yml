@@ -36,11 +36,20 @@ jobs:
       - name: Assemble
         run: for ep in ${{ steps.eps.outputs.list }}; do python3 tools/assemble.py "$ep"; done
 
-      - name: Commit results
+      # Videos and voice clips go to a GitHub Release (one per episode), not into git history,
+      # so they can be deleted later and really free space. Public URL:
+      # https://github.com/<owner>/<repo>/releases/download/<episode>/<file>
+      - name: Publish to release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
-          for ep in ${{ steps.eps.outputs.list }}; do git add "$ep"/voice "$ep"/*.mp4; done
-          git commit -m "Build video: ${{ steps.eps.outputs.list }}" || exit 0
-          git pull --rebase -q origin main
-          git push
+          for ep in ${{ steps.eps.outputs.list }}; do
+            tag=$(basename "$ep")
+            files=$(ls "$ep"/*.mp4; for f in "$ep"/voice/*.mp3; do cp "$f" "$ep/.work/${tag}-$(basename "$f")"; echo "$ep/.work/${tag}-$(basename "$f")"; done)
+            if gh release view "$tag" >/dev/null 2>&1; then
+              gh release upload "$tag" $files --clobber
+            else
+              gh release create "$tag" $files --title "$tag" --notes "Auto-built video for $tag"
+            fi
+            echo "https://github.com/${{ github.repository }}/releases/download/$tag/$(basename "$ep"/*.mp4)"
+          done
