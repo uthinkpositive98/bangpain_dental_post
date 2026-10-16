@@ -21,7 +21,7 @@ Each scheduled run follows this guide exactly. One post per day, published at **
 7. Call Metricool `createScheduledPost` (blogId 7459912), date today 17:28 +07:00:
    - `autoPublish: true`, `draft: false`, providers `[{"network":"facebook"}]`, `facebookData: {"type":"POST"}`
    - `media`: [raw URL of the pushed image], `mediaAltText`: [short Thai description]
-   - `firstCommentText`: `🗓 ลงนัดปรึกษาทันตแพทย์ออนไลน์ได้ที่ https://dental-booking-seven.vercel.app/`
+   - `firstCommentText`: `""` (empty). **No link in the first comment either.**
    - If Metricool can't fetch the image, wait ~60 s and retry once.
    - If it is already past 17:28 when you reach this step, schedule for 5 minutes from now instead and say so in the report.
 8. Report in one or two lines: topic, scheduled time, planner link.
@@ -31,7 +31,7 @@ Each scheduled run follows this guide exactly. One post per day, published at **
 - Opening line: emoji + a question or hook as the headline.
 - Body ~120–250 words: what it is / why it happens / what to do, with ✅ or numbered points. One clear takeaway.
 - End the body with when to see a dentist (signs that need a check-up), worded gently.
-- **No URL anywhere in the post text** — the link goes only in the first comment (a URL in the text creates a link-preview card).
+- **No URL anywhere — not in the post text and not in any comment.** Facebook now limits Pages without a paid Meta One plan to 2 posts/comments with links per month, and a link in the first comment counts. Point people to the LINE/phone and the link on the Page profile instead.
 - Then this footer, verbatim:
 
 ```
@@ -41,7 +41,7 @@ Each scheduled run follows this guide exactly. One post per day, published at **
 📞 โทร 092-359-5963
 🕘 เปิดวันจันทร์ - วันอาทิตย์ 09:30 – 14:00 น. (หยุดวันศุกร์)
 💬 แอดไลน์นัดหมายล่วงหน้า สะดวก ไม่ต้องรอนาน แอดไลน์ได้ที่เบอร์ 0923595963
-🗓 ลิงก์ลงนัดออนไลน์อยู่ในคอมเมนต์แรกค่ะ
+🗓 ลงนัดออนไลน์ได้จากลิงก์บนหน้าเพจค่ะ
 ```
 - Then 3–5 hashtags, always including `#คลินิกทันตกรรมบางปะอิน #บางปะอิน`.
 
