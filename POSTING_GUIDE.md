@@ -7,6 +7,11 @@ Each scheduled run follows this guide exactly. One post per day, published at **
 - Image host: this repo, public raw URL
   `https://raw.githubusercontent.com/uthinkpositive98/bangpain_dental_post/main/images/<file>.png`
 
+## Posting days and the Metricool cap (free plan: 20 scheduled posts per month)
+- Until 2026-10-31: image posts on Wednesday, Friday, Sunday.
+- From 2026-11-01: image posts on **Wednesday only**. If today is a Friday or Sunday on or after 2026-11-01, do nothing
+  and report "skipped: image posts are Wednesday-only from November".
+
 ## Steps for each run
 1. `git pull` this repo. Read `topics.md` and `posted.md`.
 2. Call Metricool `getScheduledPosts` for today (Asia/Bangkok). If a post with an image is already scheduled for today at 17:28, stop and report — do not post twice.

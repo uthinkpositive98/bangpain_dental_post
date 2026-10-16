@@ -9,6 +9,11 @@ Fixed IDs
 - Repo `uthinkpositive98/bangpain_dental_post`; finished video URL:
   `https://github.com/uthinkpositive98/bangpain_dental_post/releases/download/<slug>/<slug>.mp4`
 
+## Posting days and the Metricool cap (free plan: 20 scheduled posts per month)
+- Until 2026-10-31: Reels on Monday, Tuesday, Thursday, Saturday.
+- From 2026-11-01: Reels on **Monday, Thursday, Saturday only**. If today is a Tuesday on or after 2026-11-01, do nothing
+  and report "skipped: Tuesday is not a Reel day from November".
+
 ## Pipeline (do in order)
 
 1. **Setup.** Repo in session (add with push access if missing), cloned, `git pull`. Read this guide, `video_topics.md`,
