@@ -1,0 +1,46 @@
+name: Build video
+
+on:
+  push:
+    branches: [main]
+    paths: ["videos/**/job.json"]
+  workflow_dispatch:
+    inputs:
+      episode:
+        description: "Episode folder under videos/"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - name: Find episodes to build
+        id: eps
+        run: |
+          if [ -n "${{ github.event.inputs.episode }}" ]; then
+            echo "list=videos/${{ github.event.inputs.episode }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "list=$(git diff --name-only HEAD~1 HEAD -- 'videos/**/job.json' | xargs -r -n1 dirname | sort -u | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Assemble
+        run: for ep in ${{ steps.eps.outputs.list }}; do python3 tools/assemble.py "$ep"; done
+
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          for ep in ${{ steps.eps.outputs.list }}; do git add "$ep"/voice "$ep"/*.mp4; done
+          git commit -m "Build video: ${{ steps.eps.outputs.list }}" || exit 0
+          git pull --rebase -q origin main
+          git push
