@@ -1,3 +1,4 @@
 videos/**/.work/
 videos/**/voice/
 videos/**/*.mp4
+__pycache__/
