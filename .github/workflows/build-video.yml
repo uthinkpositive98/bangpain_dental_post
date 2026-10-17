@@ -22,7 +22,7 @@ jobs:
           fetch-depth: 2
 
       - name: Install ffmpeg and Thai fonts
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-thai-tlwg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-thai-tlwg libgl1 libegl1
 
       - name: Find episodes to build
         id: eps
@@ -37,6 +37,7 @@ jobs:
         run: |
           pip install -q -U pillow numpy skia-python      # kawaii cartoon renderer (house style since ep3)
           python3 -c "from PIL import features; assert features.check('raqm'), 'no Thai shaping'"
+          python3 -c "import skia, numpy; print('skia', skia.__version__)"
           need_pivot=""
           for ep in ${{ steps.eps.outputs.list }}; do grep -q "tools.pivot" "$ep/scenes.py" 2>/dev/null && need_pivot=1; done
           if [ -n "$need_pivot" ]; then
@@ -48,7 +49,9 @@ jobs:
         run: |
           for ep in ${{ steps.eps.outputs.list }}; do
             if grep -q "tools.kawaii" "$ep/scenes.py"; then
-              python3 tools/kawaii_render.py "$ep"     # kawaii cartoon episode (current house style)
+              # kawaii cartoon episode (current house style); on failure, surface the error as an annotation
+              python3 tools/kawaii_render.py "$ep" 2>&1 | tee build.log; rc=${PIPESTATUS[0]}
+              if [ "$rc" != 0 ]; then tail -n 12 build.log | while IFS= read -r l; do echo "::error::$l"; done; exit "$rc"; fi
             elif grep -q "tools.pivot" "$ep/scenes.py"; then
               python3 tools/pivot_render.py "$ep"      # animated Pivot-style episode
             else
