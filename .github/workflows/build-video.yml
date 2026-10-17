@@ -21,8 +21,13 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Install ffmpeg
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Install ffmpeg and Thai fonts
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-thai-tlwg
+
+      - name: Install Playwright Chromium (Pivot-style animation renderer)
+        run: |
+          pip install -q playwright==1.56.0 pillow
+          python3 -m playwright install --with-deps chromium
 
       - name: Find episodes to build
         id: eps
@@ -34,7 +39,14 @@ jobs:
           fi
 
       - name: Assemble
-        run: for ep in ${{ steps.eps.outputs.list }}; do python3 tools/assemble.py "$ep"; done
+        run: |
+          for ep in ${{ steps.eps.outputs.list }}; do
+            if grep -q "tools.pivot" "$ep/scenes.py"; then
+              python3 tools/pivot_render.py "$ep"      # animated Pivot-style episode
+            else
+              python3 tools/assemble.py "$ep"          # older still-frame episode
+            fi
+          done
 
       # Videos and voice clips go to a GitHub Release (one per episode), not into git history,
       # so they can be deleted later and really free space. Public URL:
