@@ -21,6 +21,11 @@ Fixed IDs
 - From 2026-11-01: Reels on **Monday, Thursday, Saturday only**. If today is a Tuesday on or after 2026-11-01, do nothing
   and report "skipped: Tuesday is not a Reel day from November".
 
+**Always end every video with the clinic end card for at least 5 seconds**: the Bang Pa-in Dental Clinic logo, phone
+092-359-5963, LINE (add by the phone number), the Facebook page name, the address (ตรงข้ามการไฟฟ้าบางปะอิน) and opening
+hours (จ.–อา. 09:30–14:00 น., หยุดวันศุกร์) — `Scene("endcard", endcard_fg, ..., sub="", dur=5)` as the last scene.
+`tools/pivot_render.py` adds it automatically if a scenes.py forgets it, and never makes it shorter than 5 s.
+
 ## The stickman workflow, answered once for this clinic (the steps that would ask the owner)
 | Workflow step | Fixed answer |
 |---|---|

@@ -45,7 +45,14 @@ def load(ep):
     spec = importlib.util.spec_from_file_location("scenes", os.path.join(ep, "scenes.py"))
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    return mod.SCENES
+    scenes = list(mod.SCENES)
+    # Owner's standing rule: every video ends with the 5-second clinic end card (logo + phone + all contact channels).
+    from tools.pivot import Scene, endcard_fg
+    if not scenes or scenes[-1].bg != "endcard":
+        print("  no end card at the end -> adding the 5 s clinic end card automatically")
+        scenes.append(Scene("endcard", endcard_fg, "", sub="", dur=5))
+    scenes[-1].dur = max(scenes[-1].dur, 5.0)
+    return scenes
 
 
 def svg_doc(body):
