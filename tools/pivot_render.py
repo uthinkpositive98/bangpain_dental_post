@@ -26,9 +26,9 @@ html,body{{margin:0;width:{W}px;height:{H}px;overflow:hidden;background:#fff;fon
 #bg{{position:absolute;inset:0;width:{W}px;height:{H}px}}
 #fg{{position:absolute;inset:0}}
 #title{{position:absolute;top:120px;left:40px;right:40px;text-align:center;font-size:100px;font-weight:700;color:#fff;
-  -webkit-text-stroke:16px #2b2622;paint-order:stroke fill;line-height:1.18;letter-spacing:1px}}
+  -webkit-text-stroke:16px #2b2622;paint-order:stroke fill;line-height:1.18;letter-spacing:1px;text-wrap:balance}}
 #sub{{position:absolute;bottom:80px;left:60px;right:60px;text-align:center;font-size:54px;font-weight:600;color:#fff;
-  line-height:1.42;background:rgba(14,94,99,.84);border-radius:30px;padding:24px 34px;box-shadow:0 10px 0 rgba(0,0,0,.22)}}
+  line-height:1.42;text-wrap:balance;background:rgba(14,94,99,.84);border-radius:30px;padding:24px 34px;box-shadow:0 10px 0 rgba(0,0,0,.22)}}
 #sub:empty,#title:empty{{display:none}}
 </style></head><body><div id="stage"><div id="cam"><img id="bg"><svg id="fg" width="{W}" height="{H}"
  viewBox="0 0 {W} {H}" xmlns="http://www.w3.org/2000/svg"></svg></div><div id="title"></div><div id="sub"></div></div>
