@@ -1,13 +1,38 @@
-import skia, numpy as np, math, random, subprocess, sys, os
-from PIL import Image, ImageDraw, ImageFont
+"""Kawaii cartoon Reel toolkit for คลินิกทันตกรรมบางปะอิน (the house style since ep3, 2026-10-18).
+
+Pastel 2D cartoon drawn in code with skia: teeth with faces (big eyes, blush, blinking), squash-and-stretch bounces,
+cut-away gum/bone diagrams, the titanium implant hero, bouncy pop-in Thai titles and pill captions, sparkles, bursts,
+confetti, iris transitions between scenes, a progress bar, and the clinic end card with the real logo.
+
+An episode is videos/<slug>/scenes.py:
+
+    from tools.kawaii import *
+    def s1(c, t): ...                       # draw one frame of scene 1 at local time t (seconds)
+    SCENES = [Scene(s1, 6.0), ..., Scene(endcard('ปรึกษาเรื่อง... ทักมาได้เลย!'), 6.0)]
+
+Every pop-in text (label / big_title / step_badge / hand_text) plays a pop automatically; call
+cue(t, t0, 'click') etc. for other sound effects (see tools/kawaii_audio.py SFX). Scenes may be held longer
+than their nominal length when the narration needs it, so every animation must settle into a final pose
+(use seg()/pop() which clamp) - never loop something that must end.
+Render with tools/kawaii_render.py.
+"""
+import skia, numpy as np, math, random, subprocess, os
+from PIL import Image, ImageDraw, ImageFont, features
 
 W, H, FPS = 1080, 1920, 30
 ROOT = os.path.dirname(os.path.abspath(__file__))
-FONT_B = os.path.join(ROOT, 'fonts/mitr-700.ttf')
-FONT_M = os.path.join(ROOT, 'fonts/mitr-600.ttf')
-FONT_R = os.path.join(ROOT, 'fonts/mitr-500.ttf')
+FONT_B = os.path.join(ROOT, 'fonts', 'mitr-700.ttf')
+FONT_M = os.path.join(ROOT, 'fonts', 'mitr-600.ttf')
+FONT_R = os.path.join(ROOT, 'fonts', 'mitr-500.ttf')
+assert features.check('raqm'), 'Pillow needs raqm for Thai text shaping (pip install -U pillow)'
 
-# ---------------------------------------------------------------- palette
+# ---------------------------------------------------------------- sound cues (collected while rendering)
+_CUE = {'on': False, 'start': 0.0, 'dt': 1.0 / FPS, 'events': set()}
+def cue(t, t0, kind, gain=None):
+    """Play sound effect `kind` when the scene clock passes t0 (call it every frame, like pop())."""
+    if _CUE['on'] and t0 <= t < t0 + _CUE['dt'] - 1e-9:
+        _CUE['events'].add((round(_CUE['start'] + t0, 3), kind, gain))
+
 def C(h, a=255):
     h = h.lstrip('#')
     return skia.Color(int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16), a)
@@ -82,7 +107,8 @@ def draw_img(c, img, cx, cy, scale=1.0, alpha=1.0, rot=0):
     c.restore()
 
 def label(c, txt, cx, cy, t, t0, size=62, bg=TEAL, fg=WHITE, padx=44, pady=26, rot=0, font=FONT_B, alpha=1.0):
-    """pill label that pops in"""
+    """pill label that pops in (with a pop sound)"""
+    cue(t, t0, 'pop')
     s = pop(t, t0)
     if s <= 0: return
     img = text_img(txt, size, fg, 0, INK, font)
@@ -96,6 +122,7 @@ def label(c, txt, cx, cy, t, t0, size=62, bg=TEAL, fg=WHITE, padx=44, pady=26, r
     draw_img(c, img, cx, cy + 2, s, alpha, rot)
 
 def big_title(c, txt, cx, cy, t, t0, size=92, fill=WHITE, stroke=12, rot=0, shake=0):
+    cue(t, t0, 'pop')
     s = pop(t, t0, 0.5)
     if s <= 0: return
     img = text_img(txt, size, fill, stroke, INK)
@@ -104,6 +131,7 @@ def big_title(c, txt, cx, cy, t, t0, size=92, fill=WHITE, stroke=12, rot=0, shak
     draw_img(c, img, cx + dx, cy, s, 1.0, rot)
 
 def step_badge(c, n, cx, cy, t, t0):
+    cue(t, t0, 'pop')
     s = pop(t, t0)
     if s <= 0: return
     c.save(); c.translate(cx, cy); c.scale(s, s); c.rotate(-6)
@@ -435,367 +463,153 @@ def bone_buddy(c, x, y, s, t, seed, mood='happy'):
     c.restore()
 
 def hand_text(c, txt, x, y, t, t0, size=48, col=INK, rot=0):
+    cue(t, t0, 'pop')
     s = pop(t, t0)
     if s > 0: draw_img(c, text_img(txt, size, col, 6, WHITE), x, y, s, 1, rot)
 
-# ================================================================ scenes
-TITLE_Y = 330
-SUB_Y = 1530
+
+# ================================================================ layout helpers shared by episodes
+TITLE_Y = 330          # big title line; keep characters between y~600 and y~1450
+SUB_Y = 1530           # caption pill; Reels UI covers roughly y>1780 and the right edge
+ROW_X = [140, 340, 540, 740, 940]   # five teeth in a row
 
 def subtitle(c, txt, t, t0, t1=99, y=SUB_Y, size=56, bg=WHITE, fg=INK):
     if t < t0 or t > t1: return
     a = 1 - seg(t, t1 - 0.25, t1)
     label(c, txt, W / 2, y, t, t0, size, bg, fg, alpha=a, font=FONT_M)
 
-ROW_X = [140, 340, 540, 740, 940]
-
-def scene1(c, t):
-    T0 = t; t = t + 0.75
-    background(c, t, '#9BF6FF', MINT)
-    gy = 1320
-    for i, x in enumerate(ROW_X):
-        bob = math.sin(t * 5 + i) * 6
-        mood = 'smile'
-        if t > 1.35: mood = 'shock'
-        look = 0
-        if t > 1.35 and i != 2: look = (1 if i < 2 else -1)
-        if i == 2:
-            if t < 1.2:
-                sq = 1 - 0.12 * seg(t, 0.85, 1.2)
-                tooth(c, x, gy - 120 + bob, 0.95, 'worry' if t > 0.7 else 'smile', 0, sq, t=t, seed=i)
-            else:
-                k = t - 1.2
-                tooth(c, x + k * 520, gy - 120 - k * 1500 + k * k * 900, 0.95, 'shock', k * 520, t=t, seed=i, shadow=False)
-            continue
-        jump = 0
-        if 1.3 < t < 1.75: jump = -math.sin(seg(t, 1.3, 1.75) * math.pi) * 60
-        tooth(c, x, gy - 120 + bob + jump, 0.95, mood, 0, t=t, seed=i, look=look)
-        if t > 1.5:
-            sweat(c, x + 80, gy - 230, 0.9, 255 * seg(t, 1.5, 1.7))
-    gum_row(c, gy)
-    if 1.15 < t < 1.8:
-        k = seg(t, 1.15, 1.8)
-        burst(c, 540, gy - 140, t, 12, 60, 60 + 260 * ease_out(k), YEL, 200 * (1 - k))
-        hand_text(c, 'ป๊อก!', 640, 880, t, 1.2, 90, CORAL, 10)
-    elif t >= 1.8 and t < 2.6:
-        hand_text(c, 'ป๊อก!', 640, 880, t, 1.2, 90, CORAL, 10)
-    big_title(c, 'ฟันหายไป 1 ซี่', W / 2, TITLE_Y, T0, 1.1, 104)
-    big_title(c, 'ไม่ใช่เรื่องเล็กนะ!', W / 2, TITLE_Y + 150, T0, 2.7, 96, YEL, shake=18, rot=-3)
-    subtitle(c, 'แล้วจะเกิดอะไรขึ้นต่อ...?', T0, 4.5)
-
-def scene2(c, t):
-    T0 = t; t = t - 1.0
-    background(c, t, '#FFD6E0', '#FFF1E6')
-    gy = 1360; uy = 640
-    gum_row(c, uy, flip=True)
-    # upper teeth (upside down)
-    drop = ease_io(seg(t, 4.0, 6.4)) * 120
-    for i, x in enumerate(ROW_X):
-        d = drop if i == 2 else 0
-        mood = 'sleep' if (i == 2 and t > 4.2) else 'smile'
-        tooth(c, x, uy + 120 + d + math.sin(t * 4 + i) * 4, 0.85, mood, 0, flip=True, t=t, seed=i + 10, shadow=False)
-    if t > 4.6:
-        for k in range(3):
-            ph = (t * 0.8 + k / 3) % 1
-            draw_img(c, text_img('z', 40 + 14 * k, LAV, 5, INK), ROW_X[2] + 110 + ph * 40, uy + 180 - ph * 70 + drop, 1, 1 - ph)
-    # lower teeth with gap; neighbours tilt
-    tilt = ease_io(seg(t, 1.0, 3.6)) * 22
-    for i, x in enumerate(ROW_X):
-        if i == 2: continue
-        rot = 0; mood = 'smile'; dx = 0
-        if i == 1: rot = tilt; mood = 'worry' if t > 1.2 else 'smile'; dx = tilt * 2.4
-        if i == 3: rot = -tilt; mood = 'worry' if t > 1.2 else 'smile'; dx = -tilt * 2.4
-        wob = math.sin(t * 14) * 2 * seg(t, 1.0, 3.6) * (1 - seg(t, 3.5, 3.8))
-        c.save(); c.translate(x + dx, gy); c.rotate(rot + wob); c.translate(-(x + dx), -gy)
-        tooth(c, x + dx, gy - 120 + math.sin(t * 5 + i) * 4, 0.85, mood, 0, t=t, seed=i, shadow=False)
-        c.restore()
-    gum_row(c, gy)
-    if t > 1.4:
-        hand_text(c, 'เอ๊ะ!', ROW_X[1] - 10, gy - 330, t, 1.4, 54, CORAL, -10)
-        hand_text(c, 'เอ๊ะ!', ROW_X[3] + 10, gy - 330, t, 1.5, 54, CORAL, 10)
-    big_title(c, 'ปล่อยช่องว่างไว้นานๆ', W / 2, TITLE_Y - 20, T0, 0.3, 92)
-    subtitle(c, '1. ฟันข้างๆ ล้มเอียงเข้าหาช่อง', t, 1.0, 3.9)
-    subtitle(c, '2. ฟันคู่สบด้านบน ยื่นลงมา', t, 4.0)
-
 def cut_neighbors(c, t, moods=('smile', 'smile'), top=1200, s=1.6):
+    """two neighbour teeth standing in a gum/bone cut-away (use with bone_gum(c, top))"""
     for j, x in enumerate((200, 880)):
         tooth(c, x, top - 115 + math.sin(t * 4 + j) * 3, s, moods[j], 0, t=t, seed=j + 20, shadow=False)
-
-def scene3(c, t):
-    background(c, t, '#E2ECFF', '#F4F0FF')
-    dip = ease_io(seg(t, 1.5, 4.5)) * 120
-    bone_gum(c, 1200, dip, sad=seg(t, 0.8, 1.3), t=t)
-    cut_neighbors(c, t, ('worry', 'worry') if t > 2 else ('smile', 'smile'))
-    if 1.0 < t < 4.6:
-        a = 255 * min(seg(t, 1.0, 1.3), 1 - seg(t, 4.2, 4.6))
-        for k, dx in enumerate((-70, 0, 70)):
-            yy = 1250 + ((t * 120 + k * 40) % 120)
-            p = skia.Path(); p.moveTo(540 + dx - 22, yy); p.lineTo(540 + dx, yy + 30); p.lineTo(540 + dx + 22, yy)
-            c.drawPath(p, P(CORAL, a, stroke=10))
-    big_title(c, 'กระดูกตรงนั้น', W / 2, TITLE_Y - 30, t, 0.3, 96)
-    big_title(c, 'ก็ค่อยๆ ยุบ', W / 2, TITLE_Y + 100, t, 1.7, 96, YEL)
-    if t > 2.0:
-        hand_text(c, 'ยุบ...', 790, 1470, t, 2.0, 64, CORAL, 8)
-    subtitle(c, 'เพราะไม่มีรากฟันช่วยรับแรงเคี้ยว', t, 3.3, y=1720, size=50)
-
-def scene4(c, t):
-    background(c, t, '#FFF3B0', '#FFD6A5')
-    land = 1.2
-    if t > land:
-        burst(c, 540, 1050, t, 18, 120, 1300 * ease_out(seg(t, land, land + 0.5)), WHITE, 110)
-    gy = 1500
-    c.drawOval(RR(540, gy + 10, 420 * (seg(t, 0.5, land)), 50), P(INK, 50))
-    if t < land:
-        k = seg(t, 0.4, land)
-        y = lerp(-700, gy - 520, ease_in(k))
-        implant(c, 540, y, 1.55, 'hero', t, cape=1.0, star=False)
-        if t > 0.5: motion_lines(c, 540, y, 260, 255)
-    else:
-        k = seg(t, land, land + 0.5)
-        sq = 1 - 0.18 * math.sin(k * math.pi) * (1 - k)
-        mood = 'hero' if not (6.4 < t < 6.9) else 'happy'
-        implant(c, 540, gy - 520 + (1 - sq) * 300, 1.55, mood, t, cape=1.0, sq=sq)
-        puff(c, 540, gy, seg(t, land, land + 0.8), 9, 280)
-    if 6.4 < t < 7.2:
-        sparkle(c, 640, 1060, 40 * math.sin(seg(t, 6.4, 7.2) * math.pi), YEL)
-    big_title(c, 'ฮีโร่มาแล้ว!', W / 2, TITLE_Y - 20, t, 1.4, 112, YEL, rot=-4, shake=10)
-    big_title(c, 'รากฟันเทียม', W / 2, TITLE_Y + 130, t, 3.1, 100)
-    subtitle(c, 'ทำจากไทเทเนียม แข็งแรง', t, 4.4, y=1660, size=54, bg=TEAL, fg=WHITE)
-    subtitle(c, 'เข้ากับร่างกายได้ดี', t, 5.6, y=1770, size=54, bg=TEAL, fg=WHITE)
 
 def step_header(c, t, n, line):
     step_badge(c, n, W / 2, TITLE_Y - 90, t, 0.2)
     big_title(c, line, W / 2, TITLE_Y + 40, t, 0.45, 76)
 
 IMP_S = 1.3
-def scene5(c, t):
-    background(c, t, '#D0F4DE', '#E4FDE1')
-    top = 1200
-    bone_gum(c, top, 0)
-    cut_neighbors(c, t, ('smile', 'smile') if t < 4.7 else ('happy', 'happy'))
-    k = ease_io(seg(t, 1.0, 4.7))
-    y_end = top - 95 + 2   # platform at gum line
-    y = lerp(640, y_end, k)
-    spin = t * 3 if 1.0 < t < 4.7 else 0
-    mood = 'squeeze' if 1.0 < t < 4.7 else ('happy' if t >= 4.7 else 'hero')
-    shake = math.sin(t * 70) * 3 if 1.0 < t < 4.7 else 0
-    implant(c, 540 + shake, y, IMP_S, mood, t, phase=spin, star=False)
-    if 1.0 < t < 4.7:
-        for i in range(4):
-            ang = t * 8 + i * math.pi / 2
-            sparkle(c, 540 + math.cos(ang) * 210, y + 200 + math.sin(ang) * 30, 18, YEL)
-        hand_text(c, 'วี้~', 770, 760, t, 1.1, 64, TEAL, 8)
-    if t > 4.7:
-        burst(c, 540, y + 30, t, 12, 60, 60 + 200 * ease_out(seg(t, 4.7, 5.2)), YEL, 200 * (1 - seg(t, 5.0, 5.6)))
-        hand_text(c, 'คลิก!', 330, 780, t, 4.7, 80, CORAL, -8)
-    step_header(c, t, 1, 'ฝังรากเทียมลงในกระดูก')
-    subtitle(c, 'ใส่ยาชาก่อนเริ่มทำ', t, 1.3, 4.6, y=1700)
-    subtitle(c, 'เข้าที่พอดีเป๊ะ!', t, 5.1, y=1700, bg=YEL)
-
 def implant_in_bone(c, t, mood, top=1200):
     implant(c, 540, top - 93, IMP_S, mood, t, star=False)
 
-def scene6(c, t):
-    background(c, t, '#E0C3FC', '#F8E1FF')
-    top = 1200
-    bone_gum(c, top, 0)
-    cut_neighbors(c, t, ('sleep', 'sleep'))
-    implant_in_bone(c, t, 'sleep')
-    # bone buddies walk in and hug
-    targets = [(375, 1300), (705, 1300), (385, 1425), (695, 1425), (420, 1545), (660, 1545)]
-    for i, (tx, ty) in enumerate(targets):
-        st = 0.9 + i * 0.35
-        k = ease_out(seg(t, st, st + 1.2))
-        sx = -120 if tx < 540 else W + 120
-        x = lerp(sx, tx, k); y = ty - abs(math.sin(t * 10 + i)) * 18 * (1 - k)
-        bone_buddy(c, x, y, 1.2, t, i, 'happy' if k >= 1 else 'smile')
-    for i in range(5):
-        st = 3.0 + i * 0.45
-        if t > st:
-            ph = (t - st) / 2.4
-            if ph < 1:
-                heart(c, 540 + math.sin(i * 2.1) * 170 + math.sin(t * 3 + i) * 15, 1450 - ph * 420, 26 * (0.6 + ph), CORAL, 255 * (1 - ph))
-    for k in range(3):
-        ph = (t * 0.6 + k / 3) % 1
-        draw_img(c, text_img('z', 46 + 16 * k, LAV, 6, INK), 300 + ph * 50, 860 - ph * 90, 1, 1 - ph)
-    months = 1 + 5 * ease_io(seg(t, 1.4, 5.6))
-    if t > 0.6:
-        s = pop(t, 0.6)
-        c.save(); c.translate(820, 690); c.scale(s, s); c.translate(-820, -690)
-        calendar(c, 820, 690, t, months)
-        c.restore()
-    step_header(c, t, 2, 'รอให้กระดูกยึดรากเทียม')
-    subtitle(c, 'กระดูกค่อยๆ ยึดแน่น', t, 1.4, 4.0, y=1660, bg=YEL)
-    subtitle(c, 'เหมือนรากฟันจริง', t, 1.6, 4.0, y=1770, bg=YEL)
-    subtitle(c, 'ใช้เวลาประมาณ 3–6 เดือน', t, 4.1, y=1660)
-    subtitle(c, '(ขึ้นกับแต่ละคน)', t, 6.2, y=1770, size=44, bg=MINT)
+def germ(c, x, y, s=1.0, t=0, seed=0, col='#9BE15D', mood='hero'):
+    """cute mischievous germ blob (never gross)"""
+    c.save(); c.translate(x, y + math.sin(t * 6 + seed) * 8); c.scale(s, s)
+    wob = math.sin(t * 8 + seed) * 0.05; c.scale(1 + wob, 1 - wob)
+    for i in range(9):
+        a = 2 * math.pi * i / 9 + t * 0.6
+        bx, by = math.cos(a) * 70, math.sin(a) * 70
+        c.drawLine(math.cos(a) * 50, math.sin(a) * 50, bx, by, P(INK, stroke=6))
+        c.drawCircle(bx, by, 13, P(col)); c.drawCircle(bx, by, 13, P(INK, stroke=5))
+    body = skia.Path(); body.addCircle(0, 0, 62)
+    c.drawPath(body, P(col)); c.drawPath(body, P(INK, stroke=7))
+    c.drawCircle(-24, -26, 10, P(WHITE, 120))
+    face(c, 0, -6, mood, blink_at(t, seed + 5), 0, 0.85, eye_dx=26)
+    c.restore()
 
-def scene7(c, t):
-    background(c, t, '#BDE0FE', '#E7F5FF')
-    top = 1200
-    bone_gum(c, top, 0)
-    cut_neighbors(c, t, ('smile', 'smile') if t < 3.0 else ('joy', 'joy'))
-    implant_in_bone(c, t, 'smile' if t < 3.0 else 'joy')
-    plat = top - 93
-    # abutment drop
-    ka = seg(t, 0.7, 1.1)
-    if t > 0.7:
-        ya = lerp(600, plat + 2, ease_in(ka))
-        abutment(c, 540, ya, IMP_S * 0.95)
-    if 1.1 < t < 2.0:
-        hand_text(c, 'คลิก!', 330, 760, t, 1.1, 80, CORAL, -8)
-    # crown descends
-    if t > 1.9:
-        kc = ease_out(seg(t, 1.9, 3.0))
-        yc = lerp(520, plat - 45, kc)
-        wob = math.sin(t * 6) * 6 * (1 - kc)
-        crown(c, 540, yc, 1.6, 'joy' if t > 3.0 else 'sleep', t, 3, True, wob)
-        if t < 3.0:
-            for i in range(3):
-                sparkle(c, 540 + math.sin(t * 5 + i * 2) * 160, yc - 40 + math.cos(t * 4 + i) * 60, 22, WHITE)
-    if t > 3.0:
-        burst(c, 540, plat - 120, t, 14, 180, 180 + 500 * ease_out(seg(t, 3.0, 3.6)), YEL, 80)
-        for i in range(6):
-            ang = i * math.pi / 3 + t
-            sparkle(c, 540 + math.cos(ang) * 300, plat - 160 + math.sin(ang) * 230, 26 * (0.6 + 0.4 * math.sin(t * 6 + i)), YEL)
-        hand_text(c, 'ติ๊ง!', 800, 720, t, 3.0, 84, TEAL, 8)
-    step_header(c, t, 3, 'ใส่แกนต่อ + ครอบฟัน')
-    subtitle(c, 'ต่อแกนเชื่อมด้านบน', t, 1.2, 2.9, y=1700)
-    subtitle(c, 'สวมครอบฟัน ได้ฟันซี่ใหม่!', t, 3.1, y=1700, bg=YEL)
-
-def scene8(c, t):
-    background(c, t, '#A0E7E5', '#FBE7C6')
-    burst(c, 540, 1000, t, 16, 150, 1200, WHITE, 70, 8)
-    gy = 1180
-    for i, x in enumerate(ROW_X):
-        ph = (t * 2.4 + i * 0.5) % 1.0
-        j = -abs(math.sin(ph * math.pi)) * 70
-        sq = 1 + 0.08 * math.cos(ph * 2 * math.pi)
-        tooth(c, x, gy - 120 + j, 0.95, 'joy', math.sin(t * 5 + i) * 6, sq, t=t, seed=i)
-    gum_row(c, gy)
-    s = pop(t, 0.6)
-    if s > 0:
-        label(c, 'ใหม่!', ROW_X[2], gy - 330 + math.sin(t * 5) * 8, t, 0.6, 40, CORAL, WHITE, 26, 12, -8)
-    confetti(c, t)
-    big_title(c, 'ได้ฟันกลับมาครบ!', W / 2, TITLE_Y - 20, t, 0.3, 100, YEL, rot=-3)
-    chips = ['เคี้ยวได้มั่นใจ', 'ไม่ต้องกรอฟันข้างเคียง', 'ช่วยชะลอกระดูกยุบ', 'สวยเป็นธรรมชาติ']
-    cols = [TEAL, CORAL, '#7B6CF6', '#F4A261']
-    for i, ch in enumerate(chips):
-        label(c, ch, W / 2 + (-30 if i % 2 else 30), 1330 + i * 112, t, [0.5, 1.6, 2.9, 4.4][i], 50, cols[i], WHITE, rot=(-2 if i % 2 else 2), font=FONT_M)
-
-def scene9(c, t):
-    background(c, t, '#CAFFBF', '#FDFFB6')
-    gy = 1180
-    tooth(c, 540, 860, 1.6, 'happy' if 1.8 < t < 5.4 else 'smile', 0, t=t, seed=7)
-    if 1.8 < t < 3.8:
-        k = seg(t, 1.8, 2.1) * (1 - seg(t, 3.5, 3.8))
-        bx = 540 + math.sin(t * 16) * 70
-        c.save(); c.translate(bx + 40, 600 + (1 - k) * -500); c.scale(1, -1); toothbrush(c, 0, 0, 10, 1.1); c.restore()
-        bubbles(c, 540, 700, t, 12)
-    if 3.8 < t < 5.6:
-        k = seg(t, 3.8, 4.1) * (1 - seg(t, 5.3, 5.6))
-        fy = 820 + math.sin(t * 9) * 110
-        a = 255 * k
-        c.drawLine(120, fy - 60, 960, fy + 60, P(WHITE, a, stroke=10))
-        c.drawLine(120, fy - 60, 960, fy + 60, P(SKY, a, stroke=4))
-        for sx, sy in ((120, fy - 60), (960, fy + 60)):
-            c.drawCircle(sx, sy, 24, P(TEAL, a)); c.drawCircle(sx, sy, 24, P(INK, a, stroke=5))
-    big_title(c, 'ดูแลเหมือนฟันจริง', W / 2, TITLE_Y - 20, t, 0.3, 96)
-    label(c, 'แปรงฟันวันละ 2 ครั้ง', W / 2, 1290, t, 2.0, 52, TEAL, WHITE, font=FONT_M, rot=2)
-    label(c, 'ใช้ไหมขัดฟัน', W / 2, 1405, t, 3.7, 52, CORAL, WHITE, font=FONT_M, rot=-2)
-    label(c, 'ตรวจกับหมอฟันทุก 6 เดือน', W / 2, 1520, t, 4.6, 52, '#7B6CF6', WHITE, font=FONT_M, rot=1)
-    s = pop(t, 6.6)
-    if s > 0:
-        img = text_img('*ก่อนทำ ทันตแพทย์จะตรวจและเอกซเรย์\nว่าเหมาะกับเราไหม', 40, INK, 0, INK, FONT_R)
-        c.save(); c.translate(W / 2, 1680); c.scale(s, s)
-        c.drawRoundRect(RR(0, 0, img.width() + 60, img.height() + 40), 24, 24, P(WHITE, 225))
-        c.restore()
-        draw_img(c, img, W / 2, 1680, s)
-
-def scene10(c, t):
-    c.drawRect(skia.Rect.MakeWH(W, H), lingrad((0, 0), (0, H), TEAL, '#1B998B'))
-    burst(c, 540, 640, t, 20, 200, 1400, WHITE, 28, 6)
-    for i in range(12):
-        rr = random.Random(200 + i)
-        sparkle(c, rr.uniform(60, W - 60), rr.uniform(150, 1750), 14 + 10 * math.sin(t * 3 + i), WHITE, 160)
-    # logo
-    s = pop(t, 0.15, 0.6)
-    if s > 0:
-        c.save(); c.translate(540, 620); c.scale(s, s); c.rotate(math.sin(t * 2) * 2)
-        c.drawCircle(10, 16, 232, P(INK, 70)); c.drawCircle(0, 0, 232, P(WHITE))
-        clip = skia.Path(); clip.addCircle(0, 0, 222)
-        c.save(); c.clipPath(clip, doAntiAlias=True)
-        c.drawImageRect(LOGO, skia.Rect.MakeXYWH(-232, -232, 464, 464), SAMP, skia.Paint(AntiAlias=True))
-        c.restore()
-        c.drawCircle(0, 0, 232, P(INK, stroke=9))
-        c.restore()
-    big_title(c, 'คลินิกทันตกรรม', W / 2, 960, t, 0.5, 92)
-    big_title(c, 'บางปะอิน', W / 2, 1085, t, 0.7, 120, YEL)
-    label(c, 'โทร / LINE  092-359-5963', W / 2, 1290, t, 1.1, 60, WHITE, INK)
-    label(c, 'ตรงข้ามการไฟฟ้าบางปะอิน', W / 2, 1420, t, 1.4, 48, CORAL, WHITE, font=FONT_M)
-    label(c, 'เปิด จ.–อา. 09:30–14:00 (ปิดวันศุกร์)', W / 2, 1530, t, 1.7, 42, MINT, INK, font=FONT_M)
-    label(c, 'ปรึกษาเรื่องรากฟันเทียม ทักมาได้เลย!', W / 2, 1680, t, 2.3, 48, YEL, INK, rot=-2)
-
-_lg = np.ascontiguousarray(np.array(Image.open(os.path.join(ROOT, 'logo.png')).convert('RGBA').crop((10, 12, 754, 756))))
+# ================================================================ clinic end card (always the last scene)
+_lg = Image.open(os.path.join(ROOT, 'assets', 'logo.png')).convert('RGBA')
+_lw, _lh = _lg.size; _m = int(min(_lw, _lh) * 0.014)
+_lg = np.ascontiguousarray(np.array(_lg.crop((_m, _m, min(_lw, _lh) - _m, min(_lw, _lh) - _m))))
 LOGO = skia.Image.fromarray(_lg, colorType=skia.ColorType.kRGBA_8888_ColorType, alphaType=skia.AlphaType.kUnpremul_AlphaType)
 
-SCENES = [(scene1, 5.79), (scene2, 8.09), (scene3, 5.44), (scene4, 7.55), (scene5, 6.20),
-          (scene6, 6.92), (scene7, 4.75), (scene8, 5.57), (scene9, 9.69), (scene10, 6.5)]
-STARTS = []
-_acc = 0
-for fn, d in SCENES:
-    STARTS.append(_acc); _acc += d
-TOTAL = _acc
-TR = 0.4  # iris transition length
+def endcard(cta='ปรึกษาทันตแพทย์ ทักมาได้เลย!'):
+    """returns a scene function: logo, clinic name, phone/LINE, address, hours, and a call to action"""
+    def draw(c, t):
+        c.drawRect(skia.Rect.MakeWH(W, H), lingrad((0, 0), (0, H), TEAL, '#1B998B'))
+        burst(c, 540, 640, t, 20, 200, 1400, WHITE, 28, 6)
+        for i in range(12):
+            rr = random.Random(200 + i)
+            sparkle(c, rr.uniform(60, W - 60), rr.uniform(150, 1750), 14 + 10 * math.sin(t * 3 + i), WHITE, 160)
+        cue(t, 0.15, 'sparkle')
+        s = pop(t, 0.15, 0.6)
+        if s > 0:
+            c.save(); c.translate(540, 620); c.scale(s, s); c.rotate(math.sin(t * 2) * 2)
+            c.drawCircle(10, 16, 232, P(INK, 70)); c.drawCircle(0, 0, 232, P(WHITE))
+            clip = skia.Path(); clip.addCircle(0, 0, 222)
+            c.save(); c.clipPath(clip, doAntiAlias=True)
+            c.drawImageRect(LOGO, skia.Rect.MakeXYWH(-232, -232, 464, 464), SAMP, skia.Paint(AntiAlias=True))
+            c.restore()
+            c.drawCircle(0, 0, 232, P(INK, stroke=9))
+            c.restore()
+        big_title(c, 'คลินิกทันตกรรม', W / 2, 960, t, 0.5, 92)
+        big_title(c, 'บางปะอิน', W / 2, 1085, t, 0.7, 120, YEL)
+        label(c, 'โทร / LINE  092-359-5963', W / 2, 1290, t, 1.1, 60, WHITE, INK)
+        label(c, 'ตรงข้ามการไฟฟ้าบางปะอิน', W / 2, 1420, t, 1.4, 48, CORAL, WHITE, font=FONT_M)
+        label(c, 'เปิด จ.–อา. 09:30–14:00 (ปิดวันศุกร์)', W / 2, 1530, t, 1.7, 42, MINT, INK, font=FONT_M)
+        if cta:
+            label(c, cta, W / 2, 1680, t, 2.3, 48, YEL, INK, rot=-2)
+    draw.is_endcard = True
+    return draw
 
-def draw_frame(c, T):
-    idx = 0
-    for i, st in enumerate(STARTS):
-        if T >= st: idx = i
-    fn, d = SCENES[idx]
-    lt = T - STARTS[idx]
+# ================================================================ timeline engine
+class Scene:
+    def __init__(self, draw, dur):
+        self.draw, self.dur = draw, float(dur)
+
+TR = 0.4  # iris transition between scenes
+
+def timeline(scenes):
+    starts, acc = [], 0.0
+    for sc in scenes:
+        starts.append(acc); acc += sc.dur
+    return starts, acc
+
+def draw_frame(c, scenes, starts, total, T, progress=True):
+    idx = max(i for i, st in enumerate(starts) if T >= st - 1e-9)
+    sc = scenes[idx]; lt = T - starts[idx]
     if idx > 0 and lt < TR:
-        pfn, pd = SCENES[idx - 1]
-        pfn(c, pd + lt)
+        prev = scenes[idx - 1]
+        _CUE['on'], on = False, _CUE['on']
+        prev.draw(c, prev.dur + lt)
+        _CUE['on'] = on
         k = ease_io(lt / TR)
         r = k * 1250
         ring = skia.Path(); ring.addCircle(540, 960, r)
-        c.save(); c.clipPath(ring, doAntiAlias=True)
-        fn(c, lt)
-        c.restore()
+        _CUE['start'] = starts[idx]
+        c.save(); c.clipPath(ring, doAntiAlias=True); sc.draw(c, lt); c.restore()
         c.drawCircle(540, 960, r, P(WHITE, 255 * (1 - k), stroke=40))
     else:
-        fn(c, lt)
-    # progress bar
-    c.drawRoundRect(skia.Rect.MakeLTRB(60, 120, W - 60, 132), 6, 6, P(WHITE, 110))
-    c.drawRoundRect(skia.Rect.MakeLTRB(60, 120, 60 + (W - 120) * T / TOTAL, 132), 6, 6, P(CORAL, 230))
+        _CUE['start'] = starts[idx]
+        sc.draw(c, lt)
+    if progress:
+        c.drawRoundRect(skia.Rect.MakeLTRB(60, 120, W - 60, 132), 6, 6, P(WHITE, 110))
+        c.drawRoundRect(skia.Rect.MakeLTRB(60, 120, 60 + (W - 120) * T / total, 132), 6, 6, P(CORAL, 230))
 
-def render(out, start=0.0, end=None, preview_times=None):
+def snapshot(surf):
+    return surf.makeImageSnapshot().toarray(colorType=skia.ColorType.kRGBA_8888_ColorType)
+
+def render_video(scenes, out, fps=FPS):
+    """silent MP4; returns the sound cues [(time, kind, gain)] collected while drawing (+ a whoosh per cut)"""
+    starts, total = timeline(scenes)
     surf = skia.Surface(W, H); c = surf.getCanvas()
-    if preview_times:
-        for T in preview_times:
-            c.clear(skia.ColorWHITE); draw_frame(c, T)
-            arr = surf.makeImageSnapshot().toarray(colorType=skia.ColorType.kRGBA_8888_ColorType)
-            Image.fromarray(arr).convert('RGB').resize((540, 960)).save(f'{out}_{T:05.2f}.png')
-        return
-    end = TOTAL if end is None else end
-    n = int(round((end - start) * FPS))
-    cmd = ['ffmpeg', '-y', '-loglevel', 'error', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', f'{W}x{H}', '-r', str(FPS),
-           '-i', '-', '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', out]
-    pr = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+    _CUE.update(on=True, dt=1.0 / fps, events=set())
+    n = int(round(total * fps))
+    ff = subprocess.Popen(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', f'{W}x{H}',
+                           '-r', str(fps), '-i', '-', '-c:v', 'libx264', '-preset', 'medium', '-crf', '18',
+                           '-pix_fmt', 'yuv420p', out], stdin=subprocess.PIPE)
     for f in range(n):
-        T = start + f / FPS
-        c.clear(skia.ColorWHITE); draw_frame(c, T)
-        pr.stdin.write(surf.makeImageSnapshot().toarray(colorType=skia.ColorType.kRGBA_8888_ColorType).tobytes())
-        if f % 300 == 0: print('frame', f, '/', n, flush=True)
-    pr.stdin.close(); pr.wait()
+        c.clear(skia.ColorWHITE)
+        draw_frame(c, scenes, starts, total, f / fps)
+        ff.stdin.write(snapshot(surf).tobytes())
+        if f % 300 == 0: print(f'  frame {f}/{n}', flush=True)
+    ff.stdin.close(); ff.wait()
+    _CUE['on'] = False
+    cues = sorted(_CUE['events'])
+    cues += [(st, 'whoosh', None) for st in starts[1:]]
+    return sorted(cues), total
 
-if __name__ == '__main__':
-    mode = sys.argv[1]
-    if mode == 'preview':
-        ts = [float(x) for x in sys.argv[3:]]
-        render(sys.argv[2], preview_times=ts)
-    else:
-        start = float(sys.argv[3]) if len(sys.argv) > 3 else 0.0
-        render(sys.argv[2], start)
-        print('TOTAL', TOTAL)
+def contact_sheet(scenes, out_png, moments=(0.15, 0.5, 0.92)):
+    starts, total = timeline(scenes)
+    surf = skia.Surface(W, H); c = surf.getCanvas()
+    tw, th = 270, 480
+    sheet = Image.new('RGB', (len(moments) * (tw + 8) + 50, len(scenes) * (th + 8)), 'white')
+    d = ImageDraw.Draw(sheet)
+    for i, (sc, st) in enumerate(zip(scenes, starts)):
+        d.text((10, i * (th + 8) + 10), str(i + 1), fill='black')
+        for j, k in enumerate(moments):
+            c.clear(skia.ColorWHITE)
+            draw_frame(c, scenes, starts, total, st + max(TR + 0.01, sc.dur * k) if i else st + sc.dur * k)
+            im = Image.fromarray(snapshot(surf)).convert('RGB').resize((tw, th))
+            sheet.paste(im, (50 + j * (tw + 8), i * (th + 8)))
+    sheet.save(out_png)
+    return out_png

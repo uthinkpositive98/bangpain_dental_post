@@ -24,11 +24,6 @@ jobs:
       - name: Install ffmpeg and Thai fonts
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-thai-tlwg
 
-      - name: Install Playwright Chromium (Pivot-style animation renderer)
-        run: |
-          pip install -q playwright==1.56.0 pillow
-          python3 -m playwright install --with-deps chromium
-
       - name: Find episodes to build
         id: eps
         run: |
@@ -38,10 +33,23 @@ jobs:
             echo "list=$(git diff --name-only HEAD~1 HEAD -- 'videos/**/job.json' | xargs -r -n1 dirname | sort -u | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Install renderers
+        run: |
+          pip install -q -U pillow numpy skia-python      # kawaii cartoon renderer (house style since ep3)
+          python3 -c "from PIL import features; assert features.check('raqm'), 'no Thai shaping'"
+          need_pivot=""
+          for ep in ${{ steps.eps.outputs.list }}; do grep -q "tools.pivot" "$ep/scenes.py" 2>/dev/null && need_pivot=1; done
+          if [ -n "$need_pivot" ]; then
+            pip install -q playwright==1.56.0                # old Pivot-style stickman episodes only
+            python3 -m playwright install --with-deps chromium
+          fi
+
       - name: Assemble
         run: |
           for ep in ${{ steps.eps.outputs.list }}; do
-            if grep -q "tools.pivot" "$ep/scenes.py"; then
+            if grep -q "tools.kawaii" "$ep/scenes.py"; then
+              python3 tools/kawaii_render.py "$ep"     # kawaii cartoon episode (current house style)
+            elif grep -q "tools.pivot" "$ep/scenes.py"; then
               python3 tools/pivot_render.py "$ep"      # animated Pivot-style episode
             else
               python3 tools/assemble.py "$ep"          # older still-frame episode
@@ -57,7 +65,7 @@ jobs:
         run: |
           for ep in ${{ steps.eps.outputs.list }}; do
             tag=$(basename "$ep")
-            files=$(ls "$ep"/*.mp4; for f in "$ep"/voice/*.mp3; do cp "$f" "$ep/.work/${tag}-$(basename "$f")"; echo "$ep/.work/${tag}-$(basename "$f")"; done)
+            files=$(ls "$ep"/*.mp4; for f in $(ls "$ep"/voice/*.mp3 2>/dev/null); do cp "$f" "$ep/.work/${tag}-$(basename "$f")"; echo "$ep/.work/${tag}-$(basename "$f")"; done)
             if gh release view "$tag" >/dev/null 2>&1; then
               gh release upload "$tag" $files --clobber
             else
