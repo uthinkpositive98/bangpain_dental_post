@@ -1,0 +1,85 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  html,body{margin:0;padding:0;width:1080px;height:1080px;overflow:hidden;font-family:'Loma',sans-serif;}
+  .card{position:relative;width:1080px;height:1080px;background:linear-gradient(160deg,#e9fbf9 0%,#c9efec 55%,#9fdcd8 100%);}
+  .title{position:absolute;top:34px;left:0;right:0;text-align:center;color:#0e5e63;font-weight:bold;font-size:64px;line-height:1.3;}
+  .title span{color:#f08a3c;}
+  .row{position:absolute;top:226px;left:50px;right:50px;display:flex;gap:28px;}
+  .box{flex:1;border-radius:32px;padding:20px 18px 22px;text-align:center;box-shadow:0 8px 0 #7ccdc8;}
+  .myth{background:#fff4ec;}
+  .fact{background:#fff;}
+  .tag{display:inline-block;padding:6px 30px;border-radius:40px;font-size:36px;font-weight:bold;color:#fff;}
+  .myth .tag{background:#f08a3c;}
+  .fact .tag{background:#138a8f;}
+  .box p{margin:6px 0 0;font-size:31px;line-height:1.4;color:#0e5e63;font-weight:bold;}
+  .points{position:absolute;top:742px;left:50px;right:50px;display:flex;flex-direction:column;gap:12px;}
+  .pt{display:flex;align-items:center;gap:18px;background:#0e5e63;border-radius:24px;padding:10px 22px;color:#fff;font-size:30px;font-weight:bold;line-height:1.3;}
+  .pt b{flex:none;width:52px;height:52px;border-radius:50%;background:#f08a3c;display:flex;align-items:center;justify-content:center;font-size:30px;}
+  .foot{position:absolute;bottom:0;left:0;right:0;height:96px;background:#138a8f;color:#fff;display:flex;align-items:center;justify-content:center;gap:40px;font-size:34px;font-weight:bold;}
+</style></head>
+<body><div class="card">
+  <div class="title">ถอนฟันบน ทำให้ตาบอด?<br><span>ความเชื่อนี้ไม่จริงค่ะ!</span></div>
+
+  <div class="row">
+    <div class="box myth">
+      <div class="tag">❌ ความเชื่อ</div>
+      <svg width="410" height="270" viewBox="0 0 440 290">
+        <!-- worried tooth -->
+        <g transform="translate(40,40) scale(.72)">
+          <path d="M20 40 C 20 -10, 110 -10, 130 20 C 150 -10, 240 -10, 240 40 C 240 120, 215 160, 205 250 C 198 300, 160 300, 152 250 C 145 200, 115 200, 108 250 C 100 300, 62 300, 55 250 C 45 160, 20 120, 20 40 Z" fill="#fff" stroke="#0e5e63" stroke-width="9" stroke-linejoin="round"/>
+          <circle cx="95" cy="105" r="12" fill="#0e5e63"/><circle cx="165" cy="105" r="12" fill="#0e5e63"/>
+          <path d="M78 78 L108 88 M182 78 L152 88" stroke="#0e5e63" stroke-width="7" stroke-linecap="round"/>
+          <ellipse cx="130" cy="160" rx="16" ry="20" fill="#0e5e63"/>
+          <path d="M222 50 q12 20 0 32 q-12 -12 0 -32z" fill="#5fc9c3"/>
+        </g>
+        <!-- dashed "connection" to eye -->
+        <path d="M245 120 Q290 60 330 95" fill="none" stroke="#f08a3c" stroke-width="6" stroke-dasharray="12 10" stroke-linecap="round"/>
+        <!-- eye -->
+        <g transform="translate(355,120)">
+          <path d="M-60 0 Q0 -48 60 0 Q0 48 -60 0Z" fill="#fff" stroke="#0e5e63" stroke-width="7"/>
+          <circle r="20" fill="#138a8f"/><circle r="9" fill="#0e5e63"/><circle cx="6" cy="-6" r="4" fill="#fff"/>
+        </g>
+        <!-- question marks -->
+        <text x="300" y="235" font-family="Loma" font-size="80" font-weight="bold" fill="#f08a3c">?</text>
+        <text x="365" y="260" font-family="Loma" font-size="56" font-weight="bold" fill="#ffb3a7">?</text>
+      </svg>
+      <p>ถอนฟันบนแล้ว<br>จะกระทบเส้นประสาทตา</p>
+    </div>
+
+    <div class="box fact">
+      <div class="tag">✅ ความจริง</div>
+      <svg width="410" height="270" viewBox="0 0 440 290">
+        <!-- eye on top with its own nerve path -->
+        <g transform="translate(220,62)">
+          <path d="M-62 0 Q0 -46 62 0 Q0 46 -62 0Z" fill="#fff" stroke="#0e5e63" stroke-width="7"/>
+          <circle r="20" fill="#138a8f"/><circle r="9" fill="#0e5e63"/><circle cx="6" cy="-6" r="4" fill="#fff"/>
+          <path d="M62 0 Q130 0 170 -20" fill="none" stroke="#138a8f" stroke-width="8" stroke-linecap="round"/>
+        </g>
+        <!-- separator -->
+        <line x1="40" y1="138" x2="400" y2="138" stroke="#9fdcd8" stroke-width="5" stroke-dasharray="4 12" stroke-linecap="round"/>
+        <!-- happy tooth below with separate nerve -->
+        <g transform="translate(160,150) scale(.44)">
+          <path d="M20 40 C 20 -10, 110 -10, 130 20 C 150 -10, 240 -10, 240 40 C 240 120, 215 160, 205 250 C 198 300, 160 300, 152 250 C 145 200, 115 200, 108 250 C 100 300, 62 300, 55 250 C 45 160, 20 120, 20 40 Z" fill="#fff" stroke="#0e5e63" stroke-width="10" stroke-linejoin="round"/>
+          <path d="M80 100 Q95 84 110 100" fill="none" stroke="#0e5e63" stroke-width="9" stroke-linecap="round"/>
+          <path d="M150 100 Q165 84 180 100" fill="none" stroke="#0e5e63" stroke-width="9" stroke-linecap="round"/>
+          <path d="M100 130 Q130 170 160 130 Z" fill="#0e5e63"/>
+          <ellipse cx="68" cy="132" rx="18" ry="11" fill="#ffb3a7"/><ellipse cx="192" cy="132" rx="18" ry="11" fill="#ffb3a7"/>
+        </g>
+        <path d="M280 215 Q340 215 390 190" fill="none" stroke="#f08a3c" stroke-width="8" stroke-linecap="round"/>
+        <!-- sparkles -->
+        <g fill="#fff" stroke="#f08a3c" stroke-width="3">
+          <path d="M80 190 l7 17 17 7 -17 7 -7 17 -7 -17 -17 -7 17 -7z"/>
+        </g>
+      </svg>
+      <p>เส้นประสาทฟัน กับ<br>เส้นประสาทตา คนละเส้นกัน</p>
+    </div>
+  </div>
+
+  <div class="points">
+    <div class="pt"><b>1</b>ทันตแพทย์ตรวจ เอกซเรย์ และประเมินก่อนถอนทุกครั้ง</div>
+    <div class="pt"><b>2</b>ฟันกรามบนอยู่ใกล้โพรงไซนัส ไม่ใช่ดวงตา</div>
+    <div class="pt"><b>3</b>หลังถอน ทำตามคำแนะนำ เช่น ไม่สั่งน้ำมูกแรง ๆ</div>
+  </div>
+  <div class="foot"><span>คลินิกทันตกรรมบางปะอิน</span><span>☎ 092-359-5963</span></div>
+</div></body></html>
