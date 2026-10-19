@@ -506,6 +506,93 @@ def germ(c, x, y, s=1.0, t=0, seed=0, col='#9BE15D', mood='hero'):
     face(c, 0, -6, mood, blink_at(t, seed + 5), 0, 0.85, eye_dx=26)
     c.restore()
 
+def brush_buddy(c, x, y, s=1.0, mood='smile', t=0, seed=0, rot=0, sq=1.0, fluff=1.0, cape=0.0):
+    """standing toothbrush character (ep4): soft bristle 'hair' on top, face on the handle.
+    origin = face centre; fluff > 1 splays the bristles (a worn-out brush)."""
+    c.save(); c.translate(x, y); c.rotate(rot); c.scale(s / sq ** 0.5, s * sq)
+    c.drawOval(RR(0, 350, 200, 30), P(INK, 40))
+    if cape > 0:
+        w1 = math.sin(t * 7 + seed) * 16
+        cp = skia.Path(); cp.moveTo(-60, -110)
+        cp.cubicTo(-130, 0, -160 + w1, 200, -140 + w1, 300); cp.quadTo(0, 270 + w1, 140 - w1, 300)
+        cp.cubicTo(160 - w1, 200, 130, 0, 60, -110); cp.close()
+        c.save(); c.scale(cape, 1)
+        c.drawPath(cp, lingrad((0, -110), (0, 300), LAV, '#7B6CF6')); c.drawPath(cp, P(INK, stroke=7))
+        c.restore()
+    # bristle tufts (behind the head block)
+    n = 6
+    for i in range(n):
+        bx = -78 + i * 31.2
+        ang = (i - (n - 1) / 2) * 7 * (fluff - 1) * 1.6 + math.sin(t * 5 + i + seed) * 2.5
+        c.save(); c.translate(bx, -250); c.rotate(ang)
+        r = skia.Rect.MakeLTRB(-16, -112 - 10 * (fluff - 1), 16, 10)
+        c.drawRoundRect(r, 16, 16, P(SKY if i % 2 else WHITE)); c.drawRoundRect(r, 16, 16, P(INK, stroke=6))
+        c.restore()
+    # head block
+    hb = skia.Rect.MakeLTRB(-100, -270, 100, -170)
+    c.drawRoundRect(hb, 34, 34, lingrad((0, -270), (0, -170), WHITE, SHADE)); c.drawRoundRect(hb, 34, 34, P(INK, stroke=7))
+    # handle body
+    body = skia.Rect.MakeLTRB(-78, -185, 78, 340)
+    c.drawRoundRect(body, 70, 70, lingrad((-78, 0), (78, 0), '#1FA99C', TEAL)); c.drawRoundRect(body, 70, 70, P(INK, stroke=7))
+    c.drawRoundRect(skia.Rect.MakeLTRB(30, -120, 48, 260), 9, 9, P(WHITE, 90))
+    c.drawRoundRect(skia.Rect.MakeLTRB(-78, 150, 78, 200), 4, 4, P(MINT, 200))
+    c.drawLine(-74, 150, 74, 150, P(INK, stroke=5)); c.drawLine(-74, 200, 74, 200, P(INK, stroke=5))
+    face(c, 0, 0, mood, blink_at(t, seed + 3), 0, 1.0, eye_dx=30)
+    c.restore()
+
+def gauge(c, x, y, val, s=1.0):
+    """pressure meter: val 0 (gentle, green) .. 1 (too hard, red)"""
+    c.save(); c.translate(x, y); c.scale(s, s)
+    c.drawRoundRect(skia.Rect.MakeLTRB(-215, -215, 215, 60), 40, 40, P(INK, 60))
+    c.drawRoundRect(skia.Rect.MakeLTRB(-225, -225, 205, 45), 40, 40, P(WHITE))
+    c.drawRoundRect(skia.Rect.MakeLTRB(-225, -225, 205, 45), 40, 40, P(INK, stroke=7))
+    c.translate(-10, 0)
+    ov = skia.Rect.MakeLTRB(-165, -165, 165, 165)
+    for a0, sw, col in ((180, 75, '#7ED957'), (255, 45, YEL), (300, 60, CORAL)):
+        pth = skia.Path(); pth.addArc(ov, a0, sw)
+        c.drawPath(pth, P(col, stroke=44))
+    pth = skia.Path(); pth.addArc(skia.Rect.MakeLTRB(-188, -188, 188, 188), 180, 180); c.drawPath(pth, P(INK, stroke=6))
+    pth = skia.Path(); pth.addArc(skia.Rect.MakeLTRB(-142, -142, 142, 142), 180, 180); c.drawPath(pth, P(INK, stroke=6))
+    ang = math.radians(180 + 180 * clamp(val, -0.05, 1.05))
+    c.drawLine(0, 0, math.cos(ang) * 135, math.sin(ang) * 135, P(INK, stroke=14))
+    c.drawCircle(0, 0, 26, P(CORAL)); c.drawCircle(0, 0, 26, P(INK, stroke=6))
+    c.restore()
+    draw_img(c, text_img('เบา', 40, '#3E9B2F', 0), x - 10 - 150 * s, y + 10 * s, s)
+    draw_img(c, text_img('แรง', 40, CORAL, 0), x - 10 + 150 * s, y + 10 * s, s)
+
+def timer_clock(c, x, y, frac, s=1.0, t=0):
+    """round timer that fills up (frac 0..1)"""
+    c.save(); c.translate(x, y); c.scale(s, s); c.rotate(math.sin(t * 6) * 2)
+    c.drawRoundRect(RR(0, -165, 60, 40), 12, 12, P(CORAL)); c.drawRoundRect(RR(0, -165, 60, 40), 12, 12, P(INK, stroke=6))
+    c.drawCircle(8, 12, 150, P(INK, 70)); c.drawCircle(0, 0, 150, P(WHITE))
+    if frac > 0:
+        pie = skia.Path(); pie.moveTo(0, 0); pie.arcTo(skia.Rect.MakeLTRB(-122, -122, 122, 122), -90, 360 * clamp(frac) - 0.01, False); pie.close()
+        c.drawPath(pie, P(MINT))
+    c.drawCircle(0, 0, 150, P(INK, stroke=8)); c.drawCircle(0, 0, 132, P(CORAL, stroke=10))
+    for i in range(12):
+        a = 2 * math.pi * i / 12
+        c.drawLine(math.cos(a) * 108, math.sin(a) * 108, math.cos(a) * 120, math.sin(a) * 120, P(INK, stroke=6))
+    a = -math.pi / 2 + 2 * math.pi * clamp(frac)
+    c.drawLine(0, 0, math.cos(a) * 95, math.sin(a) * 95, P(INK, stroke=10))
+    c.drawCircle(0, 0, 14, P(INK))
+    c.restore()
+
+def ice_cube(c, x, y, s=1.0, t=0, seed=0, mood='happy', rot=0):
+    c.save(); c.translate(x, y); c.rotate(rot); c.scale(s, s)
+    r = RR(0, 0, 150, 150)
+    c.drawRoundRect(r, 34, 34, lingrad((0, -75), (0, 75), '#E8FBFF', '#A9E7F7')); c.drawRoundRect(r, 34, 34, P(INK, stroke=7))
+    c.drawRoundRect(skia.Rect.MakeLTRB(-52, -56, -20, -40), 8, 8, P(WHITE, 220))
+    face(c, 0, 4, mood, blink_at(t, seed), 0, 0.7, eye_dx=24)
+    c.restore()
+
+def zap(c, x, y, s=1.0, rot=0, a=255):
+    """little lightning bolt (sensitivity 'zing')"""
+    if a <= 1: return
+    c.save(); c.translate(x, y); c.rotate(rot); c.scale(s, s)
+    p = skia.Path(); p.moveTo(10, -60); p.lineTo(-28, 6); p.lineTo(0, 6); p.lineTo(-12, 60); p.lineTo(30, -10); p.lineTo(2, -10); p.close()
+    c.drawPath(p, P(YEL, a)); c.drawPath(p, P(INK, a, stroke=5))
+    c.restore()
+
 # ================================================================ clinic end card (always the last scene)
 _lg = Image.open(os.path.join(ROOT, 'assets', 'logo.png')).convert('RGBA')
 _lw, _lh = _lg.size; _m = int(min(_lw, _lh) * 0.014)
