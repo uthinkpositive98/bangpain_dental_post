@@ -1,7 +1,12 @@
 # คู่มือคลิป Reel อัตโนมัติ — คลินิกทันตกรรมบางปะอิน
 
-One narrated **kawaii cartoon Reel** per run, published on the clinic Facebook page as a **Facebook Reel at 19:00
-Asia/Bangkok** on the Reel days below. Each run does every step itself; nothing is left for the owner to do.
+One narrated **kawaii cartoon episode** per run, published on the clinic Facebook page as a **Facebook video at 19:00
+Asia/Bangkok** on the posting days below. Each run does every step itself; nothing is left for the owner to do.
+
+**Owner request 2026-10-22 (replaces the 60–75 s vertical Reel format): every new episode is a ~5-minute 16:9
+landscape cartoon like ep11 "อาหารไทยแอบหวาน" — an opening cover card, the kawaii house style, หมอนวรัตน์ in her
+bright aqua scrubs with a superhero cape in the knowledge scenes (`dr_nawarat()`), cheerful Thai narration, end card.**
+See "Long landscape episodes" below; where it differs from the older Reel rules further down, it wins.
 
 **Standing rule from the owner (2026-10-18, replaces the earlier stickman rule): every video must match the quality and
 look of ep3 "รากฟันเทียม ฮีโร่ไทเทเนียม"** (`videos/ep3-dental-implant-hero/`, watch its contact.png): a pastel 2D
@@ -19,9 +24,27 @@ Fixed IDs
   `https://github.com/uthinkpositive98/bangpain_dental_post/releases/download/<slug>/<slug>.mp4`
 
 ## Posting days and the Metricool cap (free plan: 20 scheduled posts per month)
-- Until 2026-10-31: Reels on Monday, Tuesday, Thursday, Saturday.
-- From 2026-11-01: Reels on **Monday, Thursday, Saturday only**. If today is a Tuesday on or after 2026-11-01, do nothing
-  and report "skipped: Tuesday is not a Reel day from November".
+- Videos on **Tuesday, Thursday, Saturday and Sunday** at 19:00 (about 17 posts a month). The daily image posts were
+  cancelled by the owner on 2026-10-21, so videos are the only scheduled posts.
+
+## Long landscape episodes (house format from 2026-10-22)
+| Item | Answer |
+|---|---|
+| Format | 16:9 landscape, 1920×1080, 30 fps. Put a file `videos/<slug>/FORMAT` containing `landscape` (the renderer reads it). |
+| Length | **about 5 minutes (4:30–5:30)**: `Scene(cover(...), 4)` first, then **22–28 story scenes of 8–14 s**, then the end card (6 s) |
+| Arc | cover → hook in the first 10 s → the problem as a little story with characters (teeth, germs, food/props, people) → **"มุมความรู้กับหมอนวรัตน์"** chapters: `dr_nawarat()` explains with cut-away diagrams and numbered `step_header()` steps → a quick myth-or-fact round → summary of 3–5 tips with confetti → end card |
+| Cover | `cover('<title ≤ 18 chars>', '<question/subtitle>', 'ตอนที่ N')` — pastel sunburst, big two-tone title, happy tooth + หมอนวรัตน์ (or `cast=` your own characters) |
+| Dr. นวรัตน์ | `dr_nawarat(c, x, y, s, t, mood, wave=, point=, cape=1, hold='brush'|'mirror')`; origin = centre of her head, body reaches ~560·s below. Cape on in knowledge scenes; `cape=0` inside the clinic. |
+| Layout | `TITLE_Y` 150, characters between y≈280 and y≈860, caption pills at `SUB_Y` 965, `GUM_TOP` 720, `ROW_X` centred; the helpers (`bone_gum`, `cut_neighbors`, `endcard`, iris transition, progress bar) adapt automatically. |
+| Narration | Voice Nueng, one clip per scene (1–3 short sentences, ≤ 13 s), ~3,500–4,500 Thai characters in total (≈ 4–5k ElevenLabs credits). |
+| Post | Metricool `facebookData {"type":"POST","title":"<title>"}` (a 5-minute landscape video is a normal video post, not a REEL), `videoCoverMilliseconds` 2000 (the cover card). |
+
+- **No silent long videos.** If ElevenLabs refuses for lack of credits, do not post: commit what was made, and report
+  "ElevenLabs out of credits — episode <slug> not posted" so the owner can top up.
+- **ElevenLabs rate limit.** Start one generation at a time. A `429 rate_limited` error means nothing was generated or
+  charged: wait 60 s and retry that same call (up to 3 times). Poll `creative_get_flow_run_status` with ≤ 8 sessions
+  per call. If a voice is not available on the account's plan, use another Thai female library voice and say so.
+- The GitHub Actions build of a 5-minute episode takes longer: wait for the release tag for up to **60 min**.
 
 ## Format (fixed — do not ask the owner)
 | Item | Answer |

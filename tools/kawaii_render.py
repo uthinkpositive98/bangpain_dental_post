@@ -13,6 +13,9 @@ the clip is sped up slightly (max 1.2x).
 import argparse, importlib.util, json, os, subprocess, sys, urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+_ep_arg = next((a for a in sys.argv[1:] if not a.startswith("-")), None)
+if _ep_arg and os.path.exists(os.path.join(_ep_arg, "FORMAT")):      # e.g. `landscape` for the long 16:9 episodes
+    os.environ.setdefault("KAWAII_FORMAT", open(os.path.join(_ep_arg, "FORMAT")).read().strip())
 sys.path.insert(0, os.path.dirname(HERE))
 from tools import kawaii as K            # noqa: E402
 from tools import kawaii_audio as A      # noqa: E402

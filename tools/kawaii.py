@@ -19,7 +19,11 @@ Render with tools/kawaii_render.py.
 import skia, numpy as np, math, random, subprocess, os
 from PIL import Image, ImageDraw, ImageFont, features
 
-W, H, FPS = 1080, 1920, 30
+# Format: 9:16 Reel (default) or 16:9 landscape. Set KAWAII_FORMAT=landscape, or put a file named FORMAT containing
+# `landscape` in the episode folder (tools/kawaii_render.py reads it before importing this module).
+FORMAT = os.environ.get('KAWAII_FORMAT', 'portrait').strip().lower()
+LANDSCAPE = FORMAT == 'landscape'
+W, H, FPS = (1920, 1080, 30) if LANDSCAPE else (1080, 1920, 30)
 ROOT = os.path.dirname(os.path.abspath(__file__))
 FONT_B = os.path.join(ROOT, 'fonts', 'mitr-700.ttf')
 FONT_M = os.path.join(ROOT, 'fonts', 'mitr-600.ttf')
@@ -154,7 +158,7 @@ def background(c, t, top, bot, dots=True):
     # subtle polka sparkle
     for i in range(10):
         rr = random.Random(100 + i)
-        x, y = rr.uniform(60, W - 60), rr.uniform(200, 1500)
+        x, y = rr.uniform(60, W - 60), rr.uniform(H * 0.1, H * 0.78)
         tw = 0.5 + 0.5 * math.sin(t * 3 + i * 1.7)
         sparkle(c, x, y, 10 + 10 * tw, WHITE, 140 * tw)
 
@@ -372,7 +376,9 @@ def abutment(c, x, y, s=1.0, rot=0):
     c.restore()
 
 # ---------------------------------------------------------------- jaw pieces
-def bone_gum(c, top=1200, dip=0.0, gapx=540, gapw=376, sad=0.0, t=0, buddies=False):
+def bone_gum(c, top=None, dip=0.0, gapx=None, gapw=376, sad=0.0, t=0, buddies=False):
+    top = GUM_TOP if top is None else top
+    gapx = W / 2 if gapx is None else gapx
     def edge(off):
         p = skia.Path(); p.moveTo(-20, H + 20); p.lineTo(-20, top + off)
         x0, x1 = gapx - gapw / 2 - 60, gapx + gapw / 2 + 60
@@ -469,18 +475,25 @@ def hand_text(c, txt, x, y, t, t0, size=48, col=INK, rot=0):
 
 
 # ================================================================ layout helpers shared by episodes
-TITLE_Y = 330          # big title line; keep characters between y~600 and y~1450
-SUB_Y = 1530           # caption pill; Reels UI covers roughly y>1780 and the right edge
-ROW_X = [140, 340, 540, 740, 940]   # five teeth in a row
+if LANDSCAPE:
+    TITLE_Y = 150      # big title line; keep characters between y~280 and y~860
+    SUB_Y = 965        # caption pill near the bottom edge
+    GUM_TOP = 720      # default top of the gum/bone cut-away
+else:
+    TITLE_Y = 330      # big title line; keep characters between y~600 and y~1450
+    SUB_Y = 1530       # caption pill; Reels UI covers roughly y>1780 and the right edge
+    GUM_TOP = 1200
+ROW_X = [W / 2 - 400, W / 2 - 200, W / 2, W / 2 + 200, W / 2 + 400]   # five teeth in a row
 
 def subtitle(c, txt, t, t0, t1=99, y=SUB_Y, size=56, bg=WHITE, fg=INK):
     if t < t0 or t > t1: return
     a = 1 - seg(t, t1 - 0.25, t1)
     label(c, txt, W / 2, y, t, t0, size, bg, fg, alpha=a, font=FONT_M)
 
-def cut_neighbors(c, t, moods=('smile', 'smile'), top=1200, s=1.6):
+def cut_neighbors(c, t, moods=('smile', 'smile'), top=None, s=1.6):
     """two neighbour teeth standing in a gum/bone cut-away (use with bone_gum(c, top))"""
-    for j, x in enumerate((200, 880)):
+    top = GUM_TOP if top is None else top
+    for j, x in enumerate((W / 2 - 340, W / 2 + 340)):
         tooth(c, x, top - 115 + math.sin(t * 4 + j) * 3, s, moods[j], 0, t=t, seed=j + 20, shadow=False)
 
 def step_header(c, t, n, line):
@@ -488,8 +501,9 @@ def step_header(c, t, n, line):
     big_title(c, line, W / 2, TITLE_Y + 40, t, 0.45, 76)
 
 IMP_S = 1.3
-def implant_in_bone(c, t, mood, top=1200):
-    implant(c, 540, top - 93, IMP_S, mood, t, star=False)
+def implant_in_bone(c, t, mood, top=None):
+    top = GUM_TOP if top is None else top
+    implant(c, W / 2, top - 93, IMP_S, mood, t, star=False)
 
 def germ(c, x, y, s=1.0, t=0, seed=0, col='#9BE15D', mood='hero'):
     """cute mischievous germ blob (never gross)"""
@@ -593,6 +607,89 @@ def zap(c, x, y, s=1.0, rot=0, a=255):
     c.drawPath(p, P(YEL, a)); c.drawPath(p, P(INK, a, stroke=5))
     c.restore()
 
+# ================================================================ Dr. นวรัตน์ (hero dentist) and the cover card
+SKIN = '#FFE0CC'; SKIN_D = '#F6C3A6'; HAIR = '#3A2A33'; SCRUB = '#2EC4B6'; SCRUB_D = '#1B998B'; CAPE = '#FF5A6E'
+
+def _fill(c, p, col, stroke=7):
+    c.drawPath(p, P(col) if isinstance(col, str) else col)
+    if stroke: c.drawPath(p, P(INK, stroke=stroke))
+
+def dr_nawarat(c, x, y, s=1.0, t=0.0, mood='smile', wave=0.0, point=0.0, cape=1.0, hold=None):
+    """หมอนวรัตน์ in bright aqua scrubs with a superhero cape (knowledge scenes). origin = centre of the head;
+    the body reaches ~+560*s below it. wave/point 0..1 raise the right/left arm; hold='brush'|'mirror' in the left hand;
+    cape 0 hides the cape (clinic scenes)."""
+    yy = y + math.sin(t * 2.6) * 5
+    c.save(); c.translate(x, yy); c.scale(s, s)
+    if cape > 0:
+        w1 = math.sin(t * 5) * 22
+        cp = skia.Path(); cp.moveTo(-150, 170)
+        cp.cubicTo(-260 - w1, 330, -300 - w1, 520, -250 - w1, 620); cp.quadTo(0, 560 + w1 * 0.5, 250 + w1, 620)
+        cp.cubicTo(300 + w1, 520, 260 + w1, 330, 150, 170); cp.close()
+        c.save(); c.scale(cape, 1)
+        _fill(c, cp, lingrad((0, 170), (0, 620), CAPE, '#C9184A'))
+        c.restore()
+    body = skia.Path(); body.addRoundRect(skia.Rect.MakeLTRB(-190, 150, 190, 560), 130, 130)
+    _fill(c, body, lingrad((0, 150), (0, 560), SCRUB, SCRUB_D))
+    v = skia.Path(); v.moveTo(-70, 165); v.lineTo(0, 270); v.lineTo(70, 165); v.close(); _fill(c, v, SKIN, 6)
+    c.drawLine(-120, 380, 120, 380, P(SCRUB_D, stroke=8))
+    # hero badge (golden circle with a tooth)
+    c.drawCircle(-92, 330, 46, P(YEL)); c.drawCircle(-92, 330, 46, P(INK, stroke=6))
+    c.save(); c.translate(-92, 330); c.scale(0.28, 0.28); c.drawPath(TOOTH, P(WHITE)); c.drawPath(TOOTH, P(INK, stroke=14)); c.restore()
+    c.drawRoundRect(RR(92, 320, 70, 40), 8, 8, P(WHITE)); c.drawRoundRect(RR(92, 320, 70, 40), 8, 8, P(INK, stroke=5))
+    neck = skia.Path(); neck.addRoundRect(RR(0, 150, 86, 60), 30, 30); _fill(c, neck, SKIN, 6)
+    # head: short bob, round glasses
+    bh = skia.Path(); bh.addRoundRect(skia.Rect.MakeLTRB(-188, -170, 188, 100), 150, 150); _fill(c, bh, HAIR)
+    for sx in (-1, 1):
+        e = skia.Path(); e.addOval(RR(sx * 170, 20, 50, 70)); _fill(c, e, SKIN, 6)
+    hd = skia.Path(); hd.addOval(RR(0, 0, 330, 320)); _fill(c, hd, lingrad((0, -160), (0, 160), '#FFEADB', SKIN))
+    fr = skia.Path(); fr.moveTo(-168, 10); fr.cubicTo(-170, -140, -50, -185, 30, -168)
+    fr.cubicTo(120, -160, 172, -100, 168, 0); fr.cubicTo(150, -60, 80, -110, 40, -80)
+    fr.cubicTo(-10, -110, -110, -90, -168, 10); fr.close(); _fill(c, fr, HAIR)
+    face(c, 0, 22, mood, blink_at(t, 5), 0, 1.45, eye_dx=50)
+    for sx in (-1, 1):
+        c.drawCircle(sx * 72, 22, 44, P(WHITE, 40)); c.drawCircle(sx * 72, 22, 44, P(INK, stroke=7))
+    c.drawLine(-28, 18, 28, 18, P(INK, stroke=6))
+    # arms
+    def arm(side, ang, item=None):
+        c.save(); c.translate(side * 170, 230); c.rotate(ang)
+        a = skia.Path(); a.addRoundRect(RR(0, 90, 64, 180), 32, 32); _fill(c, a, SCRUB, 6)
+        h = skia.Path(); h.addCircle(0, 190, 36); _fill(c, h, SKIN, 6)
+        if item == 'brush':
+            c.save(); c.translate(0, 230); c.rotate(180); toothbrush(c, 0, 0, 0, 0.8); c.restore()
+        elif item == 'mirror':
+            c.drawLine(0, 190, 0, 300, P(INK, stroke=12)); c.drawLine(0, 190, 0, 300, P('#C9D6E8', stroke=6))
+            c.drawCircle(0, 318, 22, P('#CFF4FF')); c.drawCircle(0, 318, 22, P(INK, stroke=6))
+        c.restore()
+    arm(1, -20 - 110 * wave + math.sin(t * 8) * 16 * wave)
+    arm(-1, 20 + 50 * point, hold)
+    c.restore()
+
+def cover(title, sub='', chip='', top='#FFE7C7', bot='#FFC8A2', cast=None):
+    """opening title card (first scene, ~4 s): pastel sunburst, big two-tone title, subtitle pill, episode chip and
+    the cast (default: a happy tooth + หมอนวรัตน์). `cast(c, t)` may draw custom characters instead."""
+    def draw(c, t):
+        c.drawRect(skia.Rect.MakeWH(W, H), lingrad((0, 0), (0, H), top, bot))
+        burst(c, W / 2, H * 0.62, t, 22, 120, max(W, H) * 1.2, WHITE, 80, 5)
+        cue(t, 0.1, 'fanfare')
+        if cast: cast(c, t)
+        elif LANDSCAPE:
+            tooth(c, 360, 720 + math.sin(t * 4) * 8, 1.5 * pop(t, 0.3), 'joy', t=t, seed=1)
+            dr_nawarat(c, 1540, 470, 0.78 * pop(t, 0.5), t, 'happy', wave=1.0)
+        else:
+            tooth(c, 300, 1350 + math.sin(t * 4) * 8, 1.6 * pop(t, 0.3), 'joy', t=t, seed=1)
+            dr_nawarat(c, 780, 1150, 0.7 * pop(t, 0.5), t, 'happy', wave=1.0)
+        ty = H * (0.30 if LANDSCAPE else 0.24)
+        big_title(c, title, W / 2, ty, t, 0.15, 128 if LANDSCAPE else 112, YEL, 14, rot=-2)
+        if sub:
+            label(c, sub, W / 2, ty + (150 if LANDSCAPE else 190), t, 0.6, 54, CORAL, WHITE, rot=-1)
+        if chip:
+            label(c, chip, 230 if LANDSCAPE else 230, 110 if LANDSCAPE else 230, t, 0.9, 46, TEAL, WHITE, rot=-8)
+        for i in range(8):
+            rr = random.Random(300 + i)
+            sparkle(c, rr.uniform(80, W - 80), rr.uniform(80, H - 80), 12 + 9 * math.sin(t * 3 + i), WHITE, 200)
+    draw.is_cover = True
+    return draw
+
 # ================================================================ clinic end card (always the last scene)
 _lg = Image.open(os.path.join(ROOT, 'assets', 'logo.png')).convert('RGBA')
 _lw, _lh = _lg.size; _m = int(min(_lw, _lh) * 0.014)
@@ -601,16 +698,22 @@ LOGO = skia.Image.fromarray(_lg, colorType=skia.ColorType.kRGBA_8888_ColorType, 
 
 def endcard(cta='ปรึกษาทันตแพทย์ ทักมาได้เลย!'):
     """returns a scene function: logo, clinic name, phone/LINE, address, hours, and a call to action"""
+    # (logo centre, logo radius, text column x, y of: name1, name2, phone, address, hours, cta)
+    if LANDSCAPE:
+        lx, ly, lr, tx, ys = 500, 520, 250, 1260, (250, 380, 560, 680, 790, 920)
+    else:
+        lx, ly, lr, tx, ys = 540, 620, 232, W / 2, (960, 1085, 1290, 1420, 1530, 1680)
     def draw(c, t):
         c.drawRect(skia.Rect.MakeWH(W, H), lingrad((0, 0), (0, H), TEAL, '#1B998B'))
-        burst(c, 540, 640, t, 20, 200, 1400, WHITE, 28, 6)
+        burst(c, lx, ly, t, 20, 200, 1400, WHITE, 28, 6)
         for i in range(12):
             rr = random.Random(200 + i)
-            sparkle(c, rr.uniform(60, W - 60), rr.uniform(150, 1750), 14 + 10 * math.sin(t * 3 + i), WHITE, 160)
+            sparkle(c, rr.uniform(60, W - 60), rr.uniform(H * 0.08, H * 0.92), 14 + 10 * math.sin(t * 3 + i), WHITE, 160)
         cue(t, 0.15, 'sparkle')
         s = pop(t, 0.15, 0.6)
         if s > 0:
-            c.save(); c.translate(540, 620); c.scale(s, s); c.rotate(math.sin(t * 2) * 2)
+            k = lr / 232
+            c.save(); c.translate(lx, ly); c.scale(s * k, s * k); c.rotate(math.sin(t * 2) * 2)
             c.drawCircle(10, 16, 232, P(INK, 70)); c.drawCircle(0, 0, 232, P(WHITE))
             clip = skia.Path(); clip.addCircle(0, 0, 222)
             c.save(); c.clipPath(clip, doAntiAlias=True)
@@ -618,13 +721,13 @@ def endcard(cta='ปรึกษาทันตแพทย์ ทักมา�
             c.restore()
             c.drawCircle(0, 0, 232, P(INK, stroke=9))
             c.restore()
-        big_title(c, 'คลินิกทันตกรรม', W / 2, 960, t, 0.5, 92)
-        big_title(c, 'บางปะอิน', W / 2, 1085, t, 0.7, 120, YEL)
-        label(c, 'โทร / LINE  092-359-5963', W / 2, 1290, t, 1.1, 60, WHITE, INK)
-        label(c, 'ตรงข้ามการไฟฟ้าบางปะอิน', W / 2, 1420, t, 1.4, 48, CORAL, WHITE, font=FONT_M)
-        label(c, 'เปิด จ.–อา. 09:30–14:00 (ปิดวันศุกร์)', W / 2, 1530, t, 1.7, 42, MINT, INK, font=FONT_M)
+        big_title(c, 'คลินิกทันตกรรม', tx, ys[0], t, 0.5, 92)
+        big_title(c, 'บางปะอิน', tx, ys[1], t, 0.7, 120, YEL)
+        label(c, 'โทร / LINE  092-359-5963', tx, ys[2], t, 1.1, 60, WHITE, INK)
+        label(c, 'ตรงข้ามการไฟฟ้าบางปะอิน', tx, ys[3], t, 1.4, 48, CORAL, WHITE, font=FONT_M)
+        label(c, 'เปิด จ.–อา. 09:30–14:00 (ปิดวันศุกร์)', tx, ys[4], t, 1.7, 42, MINT, INK, font=FONT_M)
         if cta:
-            label(c, cta, W / 2, 1680, t, 2.3, 48, YEL, INK, rot=-2)
+            label(c, cta, tx, ys[5], t, 2.3, 48, YEL, INK, rot=-2)
     draw.is_endcard = True
     return draw
 
@@ -650,17 +753,18 @@ def draw_frame(c, scenes, starts, total, T, progress=True):
         prev.draw(c, prev.dur + lt)
         _CUE['on'] = on
         k = ease_io(lt / TR)
-        r = k * 1250
-        ring = skia.Path(); ring.addCircle(540, 960, r)
+        r = k * math.hypot(W, H) * 0.6
+        ring = skia.Path(); ring.addCircle(W / 2, H / 2, r)
         _CUE['start'] = starts[idx]
         c.save(); c.clipPath(ring, doAntiAlias=True); sc.draw(c, lt); c.restore()
-        c.drawCircle(540, 960, r, P(WHITE, 255 * (1 - k), stroke=40))
+        c.drawCircle(W / 2, H / 2, r, P(WHITE, 255 * (1 - k), stroke=40))
     else:
         _CUE['start'] = starts[idx]
         sc.draw(c, lt)
     if progress:
-        c.drawRoundRect(skia.Rect.MakeLTRB(60, 120, W - 60, 132), 6, 6, P(WHITE, 110))
-        c.drawRoundRect(skia.Rect.MakeLTRB(60, 120, 60 + (W - 120) * T / total, 132), 6, 6, P(CORAL, 230))
+        py = 40 if LANDSCAPE else 120
+        c.drawRoundRect(skia.Rect.MakeLTRB(60, py, W - 60, py + 12), 6, 6, P(WHITE, 110))
+        c.drawRoundRect(skia.Rect.MakeLTRB(60, py, 60 + (W - 120) * T / total, py + 12), 6, 6, P(CORAL, 230))
 
 def snapshot(surf):
     return surf.makeImageSnapshot().toarray(colorType=skia.ColorType.kRGBA_8888_ColorType)
@@ -688,7 +792,7 @@ def render_video(scenes, out, fps=FPS):
 def contact_sheet(scenes, out_png, moments=(0.15, 0.5, 0.92)):
     starts, total = timeline(scenes)
     surf = skia.Surface(W, H); c = surf.getCanvas()
-    tw, th = 270, 480
+    tw, th = (480, 270) if LANDSCAPE else (270, 480)
     sheet = Image.new('RGB', (len(moments) * (tw + 8) + 50, len(scenes) * (th + 8)), 'white')
     d = ImageDraw.Draw(sheet)
     for i, (sc, st) in enumerate(zip(scenes, starts)):
