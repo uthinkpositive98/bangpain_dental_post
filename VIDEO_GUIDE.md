@@ -7,6 +7,7 @@ Asia/Bangkok** on the posting days below. Each run does every step itself; nothi
 landscape cartoon like ep11 "อาหารไทยแอบหวาน" — an opening cover card, the kawaii house style, หมอนวรัตน์ in her
 bright aqua scrubs with a superhero cape in the knowledge scenes (`dr_nawarat()`), cheerful Thai narration, end card.**
 See "Long landscape episodes" below; where it differs from the older Reel rules further down, it wins.
+**Read `videos/_reference/ep11-thai-food-sugar.md` first** — the owner's model episode (story, scene-by-scene script, what to keep).
 
 **Standing rule from the owner (2026-10-18, replaces the earlier stickman rule): every video must match the quality and
 look of ep3 "รากฟันเทียม ฮีโร่ไทเทเนียม"** (`videos/ep3-dental-implant-hero/`, watch its contact.png): a pastel 2D
