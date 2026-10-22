@@ -514,7 +514,7 @@ def s24(c, t, D):   # mini quiz
     background(c, t, '#FFF3B0', '#FFE7C7')
     burst(c, W / 2, 560, t, 16, 150, 1300, WHITE, 50, 6)
     big_title(c, 'ควิซ! ข้อไหนแก้ที่ต้นเหตุ?', W / 2, TITLE_Y, t, 0.2, 90, YEL, rot=-2)
-    reveal = D * 0.78
+    reveal = D * 0.74
     opts = [('ก.', 'อมลูกอมมิ้นต์'), ('ข.', 'ทำความสะอาด\nลิ้นและซอกฟัน'), ('ค.', 'ฉีดสเปรย์\nดับกลิ่น')]
     for i, (k, nm) in enumerate(opts):
         x = 420 + i * 540; t0 = 1.6 + i * 1.6
@@ -587,7 +587,7 @@ assert len(STORY) == len(NARR) - 2
 _dp = os.path.join(HERE, 'durations.json')
 _meas = json.load(open(_dp)) if os.path.exists(_dp) else {}
 def dur(i, est_extra=1.1):
-    if str(i) in _meas: return round(max(8.0, min(14.0, _meas[str(i)] + 0.15 + 0.9)), 2)
+    if str(i) in _meas: return round(max(8.5, min(14.0, _meas[str(i)] + 1.7)), 2)
     n = len(re.sub(r'\[.*?\]', '', NARR[i]))
     return round(max(8.0, min(14.0, n / 11.5 + est_extra)), 2)
 
