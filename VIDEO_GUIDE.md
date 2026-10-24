@@ -17,7 +17,7 @@ no intro, a myth twist near the end and a payoff. Watch `videos/ep14-implant-3d/
 | Format | 9:16 vertical 1080×1920, 30 fps, **55–65 s total**: cover 1.8 s + 9–11 story beats + end card ~6 s |
 | Post | Metricool Facebook **REEL** (`facebookData {"type":"REEL","title":"<episode.json title>"}`), `videoCoverMilliseconds` **600** (the cover), 19:00 +07:00 |
 | Cover | 3D hero shot + big title — `episode.json` "cover": `tag` (hook question), `title` (≤ 11 Thai chars at 200 px; set `titleSize` smaller if longer), `title2`, `sub`, `seconds` 1.8; `cover(t, L)` in scene3d.js poses the scene and returns ≤ 4 part labels |
-| Badges | added automatically bottom-right for the whole clip: "ให้ความรู้โดย ทญ.นวรัตน์" + "คลินิกทันตกรรมบางปะอิน" (`tools/cut3d/badges.png`) |
+| Badges | added automatically bottom-right for the whole clip: หมอนวรัตน์'s real photo (cut-out sticker, `tools/cut3d/dr_photo.png`, owner request 2026-10-25) above "ให้ความรู้โดย ทญ.นวรัตน์" + "คลินิกทันตกรรมบางปะอิน" — all in `tools/cut3d/badges.png` |
 | End card | automatic (logo, phone/LINE, address, hours) + `episode.json` `endcta`; the last script line is spoken over it |
 | Voice | Nueng `RIc0VzgLsI8EhceUkZx4`, `eleven_v4`, `generations_count` 1; `episode.json` `tempo` 1.12 (sped up, pitch kept) |
 
