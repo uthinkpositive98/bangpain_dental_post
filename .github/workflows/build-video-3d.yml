@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # pinned: Playwright's Chromium deps are known-good here
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
@@ -37,11 +37,23 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install ffmpeg, three.js, Chromium
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - name: Install numpy
+        run: python3 -m pip install -q numpy || python3 -m pip install -q --break-system-packages numpy
+
+      - name: Install three.js + Playwright
+        working-directory: tools/cut3d
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
-          pip install -q numpy
-          cd tools/cut3d && npm install --no-audit --no-fund && npm install --no-save --no-audit --no-fund playwright@1.56.0 && npx playwright install --with-deps chromium
+          npm install --no-audit --no-fund 2>&1 | tail -n 20
+          npm install --no-save --no-audit --no-fund playwright@1.56.0 2>&1 | tail -n 20
+          test -d node_modules/three && test -d node_modules/playwright
+
+      - name: Install Chromium
+        working-directory: tools/cut3d
+        run: |
+          npx playwright install --with-deps chromium > pw.log 2>&1 || { tail -n 15 pw.log | while IFS= read -r l; do echo "::error::$l"; done; exit 1; }
 
       - name: Render
         run: |
