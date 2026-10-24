@@ -1,0 +1,68 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- cut3d engine page: /tools/cut3d/engine.html?ep=videos/<slug>&rs=0.6667 (served from the repo root by render.js) -->
+<style>
+@font-face{font-family:K;src:url(/tools/fonts/kanit-thai-700-normal.woff2) format('woff2');font-weight:700;unicode-range:U+0E00-0E7F,U+200C-200D,U+25CC}
+@font-face{font-family:K;src:url(/tools/fonts/kanit-latin-700-normal.woff2) format('woff2');font-weight:700}
+html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:#000;font-family:K,sans-serif;font-weight:700}
+#c{position:absolute;inset:0;width:1080px;height:1920px}
+#cap{position:absolute;left:0;right:0;top:880px;text-align:center;font-size:104px;line-height:1.25;color:#fff;
+  -webkit-text-stroke:16px #111;paint-order:stroke fill;text-shadow:0 8px 18px rgba(0,0,0,.45);white-space:nowrap}
+#cap.key{color:#FFE14D}
+.chip{position:absolute;left:50%;transform-origin:50% 50%;padding:18px 40px;border-radius:999px;font-size:58px;white-space:nowrap;
+  background:#fff;color:#16324F;border:7px solid #16324F;box-shadow:0 10px 0 rgba(22,50,79,.35)}
+.chip.dark{background:#16324F;color:#fff;border-color:#fff}
+.chip.red{background:#FF5A5F;color:#fff;border-color:#fff}
+.chip.green{background:#2EC4B6;color:#fff;border-color:#fff}
+.chip.yel{background:#FFE14D;color:#16324F}
+#cal{position:absolute;left:50%;top:150px;width:300px;height:300px;margin-left:-150px;border-radius:36px;background:#fff;border:8px solid #16324F;
+  box-shadow:0 12px 0 rgba(22,50,79,.35);overflow:hidden;text-align:center;color:#16324F}
+#cal .hd{background:#FF5A5F;color:#fff;font-size:48px;padding:10px 0}
+#cal .n{font-size:150px;line-height:190px}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+#end{position:absolute;inset:0;opacity:0;background:linear-gradient(#2EC4B6,#1B998B);overflow:hidden;color:#fff;text-align:center}
+#end .logo{position:absolute;left:50%;top:200px;width:500px;height:500px;margin-left:-250px;border-radius:50%;background:#fff;border:10px solid #16324F;overflow:hidden;box-shadow:12px 18px 0 rgba(22,50,79,.3)}
+#end .logo img{width:100%;height:100%;object-fit:cover}
+#end .t{position:absolute;left:0;right:0;transform-origin:50% 50%}
+#end .pill{display:inline-block;padding:14px 44px;border-radius:999px;border:6px solid #16324F}
+.ray{position:absolute;left:540px;top:450px;width:1400px;height:70px;margin-top:-35px;transform-origin:0 50%;background:rgba(255,255,255,.10)}
+#cover{position:absolute;inset:0;display:none;text-align:center;pointer-events:none}
+#cover .tag{position:absolute;left:50%;top:150px;transform:translateX(-50%) rotate(-3deg);font-size:60px;padding:14px 44px;border-radius:999px;background:#FF5A5F;color:#fff;border:7px solid #fff;box-shadow:0 10px 0 rgba(22,50,79,.35);white-space:nowrap}
+#cover .h1{position:absolute;left:0;right:0;top:270px;font-size:200px;line-height:1.1;color:#FFE14D;-webkit-text-stroke:22px #16324F;paint-order:stroke fill;text-shadow:0 14px 0 rgba(22,50,79,.35)}
+#cover .h2{position:absolute;left:0;right:0;top:500px;font-size:124px;line-height:1.1;color:#fff;-webkit-text-stroke:18px #16324F;paint-order:stroke fill;text-shadow:0 12px 0 rgba(22,50,79,.35)}
+#cover .sub{position:absolute;left:50%;top:690px;transform:translateX(-50%);font-size:56px;padding:12px 40px;border-radius:999px;background:#2EC4B6;color:#fff;border:6px solid #16324F;white-space:nowrap}
+#cover .lab{position:absolute;font-size:46px;padding:8px 26px;border-radius:999px;background:#fff;color:#16324F;border:6px solid #16324F;white-space:nowrap;transform:translate(0,-50%)}
+#cover .lab::before{content:'';position:absolute;right:100%;top:50%;width:70px;height:6px;background:#16324F}
+#cover .lab{display:none}
+</style>
+<script type="importmap">{"imports":{"three":"/tools/cut3d/node_modules/three/build/three.module.js","three/addons/":"/tools/cut3d/node_modules/three/examples/jsm/"}}</script>
+</head><body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<div id="chips"></div>
+<div id="cal" style="display:none"><div class="hd"></div><div class="n">0</div></div>
+<div id="cover"><div class="tag"></div><div class="h1"></div><div class="h2"></div><div class="sub"></div>
+<div class="lab" id="l1"></div><div class="lab" id="l2"></div><div class="lab" id="l3"></div><div class="lab" id="l4"></div></div>
+<div id="cap"></div>
+<div id="flash"></div>
+<div id="end">
+  <div id="rays"></div>
+  <div class="logo"><img src="/tools/assets/logo.png"></div>
+  <div class="t" id="e1" style="top:770px;font-size:100px;-webkit-text-stroke:14px #16324F;paint-order:stroke fill">คลินิกทันตกรรม</div>
+  <div class="t" id="e2" style="top:900px;font-size:140px;color:#FFE14D;-webkit-text-stroke:16px #16324F;paint-order:stroke fill">บางปะอิน</div>
+  <div class="t" id="e3" style="top:1130px;font-size:64px"><span class="pill" style="background:#fff;color:#16324F">โทร / LINE 092-359-5963</span></div>
+  <div class="t" id="e4" style="top:1270px;font-size:52px"><span class="pill" style="background:#FF8A7A;color:#fff;border-color:#fff">ตรงข้ามการไฟฟ้าบางปะอิน</span></div>
+  <div class="t" id="e5" style="top:1390px;font-size:46px"><span class="pill" style="background:#B8F2E6;color:#16324F">เปิด จ.–อา. 09:30–14:00 (ปิดวันศุกร์)</span></div>
+  <div class="t" id="e6" style="top:1530px;font-size:54px"><span class="pill" style="background:#FFE14D;color:#16324F"></span></div>
+</div>
+<script type="module">
+import * as L from '/tools/cut3d/lib.js';
+const ep = new URLSearchParams(location.search).get('ep');
+try {
+  await L.init(ep);
+  const E = await import('/' + ep + '/scene3d.js');
+  if (E.setup) E.setup(L);
+  window.__frame = t => { L.runFrame(t, tt => E.frame(tt, L)); return true; };
+  window.__cover = t => { L.runCover(t, tt => E.cover(tt, L)); return true; };
+  window.__ready = true;
+} catch (e) { console.error('ENGINE ERROR: ' + (e && e.stack || e)); window.__error = String(e && e.stack || e); }
+</script></body></html>

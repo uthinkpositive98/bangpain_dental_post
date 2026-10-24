@@ -1,0 +1,6 @@
+{
+  "name": "cut3d",
+  "private": true,
+  "description": "3D cut-away jaw renderer for the clinic's 1-minute Reels",
+  "dependencies": { "three": "0.169.0" }
+}

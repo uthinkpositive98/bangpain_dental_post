@@ -1,5 +1,81 @@
 # คู่มือคลิป Reel อัตโนมัติ — คลินิกทันตกรรมบางปะอิน
 
+**Owner request 2026-10-24 — CURRENT HOUSE FORMAT (replaces the 5-minute landscape cartoon):** every new episode is a
+**~1-minute vertical 3D cut-away Reel** like `videos/ep14-implant-3d/` ("รากฟันเทียม ทำงานยังไง?"), built with the
+**cut3d** engine in `tools/cut3d/`. Read the section "3D cut-away Reels (cut3d)" right below and follow it; the older
+sections further down (kawaii / landscape) are only for re-building old episodes. Caption rules, Metricool IDs, voice,
+accuracy and advertising rules further down still apply.
+
+## 3D cut-away Reels (cut3d) — house format from 2026-10-24
+
+The style copies a viral 3D explainer the owner sent: one persistent 3D set (a jaw cut in half so you see gum, bone and
+roots), a fast **"แต่… → งั้น…" (problem → fix) chain** where each fix creates the next problem, word-by-word captions,
+no intro, a myth twist near the end and a payoff. Watch `videos/ep14-implant-3d/contact.jpg` (and its release MP4) first.
+
+| Item | Answer |
+|---|---|
+| Format | 9:16 vertical 1080×1920, 30 fps, **55–65 s total**: cover 1.8 s + 9–11 story beats + end card ~6 s |
+| Post | Metricool Facebook **REEL** (`facebookData {"type":"REEL","title":"<episode.json title>"}`), `videoCoverMilliseconds` **600** (the cover), 19:00 +07:00 |
+| Cover | 3D hero shot + big title — `episode.json` "cover": `tag` (hook question), `title` (≤ 11 Thai chars at 200 px; set `titleSize` smaller if longer), `title2`, `sub`, `seconds` 1.8; `cover(t, L)` in scene3d.js poses the scene and returns ≤ 4 part labels |
+| Badges | added automatically bottom-right for the whole clip: "ให้ความรู้โดย ทญ.นวรัตน์" + "คลินิกทันตกรรมบางปะอิน" (`tools/cut3d/badges.png`) |
+| End card | automatic (logo, phone/LINE, address, hours) + `episode.json` `endcta`; the last script line is spoken over it |
+| Voice | Nueng `RIc0VzgLsI8EhceUkZx4`, `eleven_v4`, `generations_count` 1; `episode.json` `tempo` 1.12 (sped up, pitch kept) |
+
+### Story formula (write `script.txt`)
+- **One line per beat**; the **last line is the end-card line**. ~600–750 Thai characters in total (≈ 50 s spoken at 1.12×).
+- Line 1 = hook: a wrong-but-simple idea as a question ("ฟันหลุด… แค่เอาฟันปลอมมาแปะ ก็จบแล้ว?").
+- Then alternate **แต่… (what goes wrong)** / **งั้น… (the fix)**, 2–3 short phrases per line; each fix causes the next problem.
+- Name the real term right after the fix: "…เรียกว่า ออสซีโออินทิเกรชั่น" → also shown as a chip.
+- Use concrete, checked numbers (เดือน, ครั้ง, ปี) — only well-established facts (กรมอนามัย / ทันตแพทยสมาคม / WHO); "อาจ" for possibilities.
+- Near the end, a myth twist: "หลายคนคิดว่า… ไม่ใช่นะ!" then the payoff "ยินดีด้วย! …". End-card line: if it is a treatment, say the dentist examines first, then "ปรึกษาคลินิกทันตกรรมบางปะอินได้เลยค่ะ".
+- Split words with `|` (caption chunks, ~1–2 words) and phrases with spaces; an optional `[excited]`/`[playful]`/`[cheerful]` tag at the start of a line. No prices, promotions, superlatives, guarantees, before/after, testimonials, gore (no blood/needles/scary surgery).
+
+### Files in `videos/<slug>/` (slug `epN-<english>-3d`)
+`script.txt` · `episode.json` (title, tempo, cover, endcta, keys = yellow caption words, marks) · `scene3d.js` (the animation) ·
+`cues.py` (sound effects) · `vo/01.mp3 … NN.mp3` (one per script line, committed) · `contact.jpg` (preview) · `job3d.json` (triggers the build, last).
+Copy `videos/ep14-implant-3d/` as the starting point.
+
+**marks** (`episode.json`): `[beat, "name", "first token of a caption chunk", occurrence]` → `L.mk(beat, "name", fallbackFraction)`
+gives the time that chunk is spoken, so actions land on the words (e.g. the fix lands on "งั้น", the wobble on "รากเทียม").
+
+### scene3d.js — the engine API (`L` = tools/cut3d/lib.js; read lib.js once, it is short)
+- `export function frame(t, L)` — before each call the engine resets every prop (hidden, default pose; `centerTooth` visible, upper jaw open).
+  Branch on beats with `L.bs(i)`, `L.be(i)`, `L.B[i].dur`, `L.mk(...)`; pose props; call `L.setCam(shotA, shotB, k, shake, t)`;
+  return `{blur, flash}` (whip blur ~12–14 px for 0.35 s at a beat start, white flash on impacts). After the last beat keep the final state under the end card.
+- `export function cover(t, L)` — pose for the cover; return labels `[{text, at:[x,y,z], dx?, dy?}]`. Optional `export function setup(L)` to build extra meshes once (`L.THREE`, `L.scene`, `L.onReset(fn)` to reset them each frame).
+- Set: `bone`, `gum` (top at `GUM_TOP` 1.2), `neighbors` (teeth at x = ±3.75·i), `centerTooth` (x=0 natural tooth), `looseCrown`, `newCrown`,
+  `upper` (y 11 open, ≈3.3 bite), `food`, `implant`, `abut`, `cells` (bone cells, from→to), `germs` + `germsArrive(t,t0)` / `germsClear(t,t0,t1)`,
+  `brush`, `inflam`/`inflamF` (red gum patch, opacity), `glow`, `warn` (red ring), `halo`, `confetti(t,t0)`, `sparkleAt(x,y,z,k,R)`,
+  materials `enamel`, `rootMat`, `titanium`, `gumMatTop`, geometry `CROWN`, `ROOT`, `tooth(x, withRoot, mat)`.
+- Shots `L.SHOTS`: wide, high, gap, bite, bone, boneC, neck, crown, gumline, ortho (add your own as `[[eye],[target]]`).
+- Overlays: `L.chip(id, text, cls, y, t, t0, t1, rot)` (cls '' | dark | red | green | yel; y ≈ 170–500 px, keep clear of the caption at 880–1010 px),
+  `L.calendar(header, number, scale)`. Captions are automatic from script.txt.
+- Easing: `seg, ease, eout, ein, back, lerp, clamp`. Build new props for other topics (cavity = dark patch on a crown, plaque = yellow film,
+  filling = coloured cap, floss, X-ray, toothpaste blob…) from simple Three.js shapes in `setup()`; keep the same look (clean, soft, slightly glossy).
+- Every beat must visibly change something; the set keeps what was built (continuity); return to the opening framing for the payoff.
+
+### Pipeline (cut3d)
+1. Double-post guard (Metricool `getScheduledPosts` today), pick the next unused topic (`video_topics.md`, rotate categories, never repeat `videos_posted.md`).
+2. Write `script.txt`, `episode.json`, `scene3d.js`, `cues.py` (copy ep14 and rewrite).
+3. **Voice (ElevenLabs is rate-limited — make as few requests as possible):** `creative_create_flow` once, then ONE
+   `creative_generate_speech` whose prompt is ALL script lines separated by a blank line (tags kept, `|` removed). Poll
+   `creative_get_flow_run_status`, download `content_url` with curl, then `python3 tools/cut3d/split_vo.py videos/<slug> take.mp3 1`
+   and check every clip length ≈ expected. If a split looks wrong, regenerate only the bad lines (one request each) and save them as `vo/NN.mp3`.
+   On `429 rate_limited` nothing was charged: wait 2–5 minutes (do other work) and retry the same call, up to 6 times.
+4. Local tools: `cd tools/cut3d && npm install` (installs three.js; Playwright + Chromium are preinstalled in the session, and the CI workflow installs its own).
+   `python3 tools/cut3d/build.py videos/<slug> --preview` (~2 min) → **open `videos/<slug>/contact.jpg`** and fix: anything off-screen or hidden,
+   chips overlapping, empty beats, a prop that pops in without motion, text clipped on the cover. Re-preview until clean.
+5. Commit everything (not `.work/`), push, then add `videos/<slug>/job3d.json` = `{"output": "<slug>.mp4"}` in its own commit and push.
+   GitHub Actions "Build 3D video" renders (~25–45 min) and publishes `https://github.com/uthinkpositive98/bangpain_dental_post/releases/download/<slug>/<slug>.mp4`.
+   Poll `git ls-remote --tags https://github.com/uthinkpositive98/bangpain_dental_post` every 60 s for the tag (up to 75 min). If the build fails, read the run's error annotations with `gh run view`, fix, push again.
+6. Metricool `createScheduledPost` (blogId 7459912): `providers [{"network":"facebook"}]`, `facebookData {"type":"REEL","title":…}`, `autoPublish true`,
+   `media [release mp4 URL]`, `videoCoverMilliseconds 600`, `firstCommentText ""`, text = caption (rules below), today 19:00 +07:00.
+7. Log in `videos_posted.md` (note "3D 1 นาที"), commit, push. Report: title + length, scheduled time, planner link.
+
+
+## Older formats (kawaii cartoon / landscape) — for old episodes only
+
+
 One narrated **kawaii cartoon episode** per run, published on the clinic Facebook page as a **Facebook video at 19:00
 Asia/Bangkok** on the posting days below. Each run does every step itself; nothing is left for the owner to do.
 
@@ -28,7 +104,7 @@ Fixed IDs
 - Videos on **Tuesday, Thursday, Saturday and Sunday** at 19:00 (about 17 posts a month). The daily image posts were
   cancelled by the owner on 2026-10-21, so videos are the only scheduled posts.
 
-## Long landscape episodes (house format from 2026-10-22)
+## Long landscape episodes (former house format 2026-10-22 → 2026-10-24)
 | Item | Answer |
 |---|---|
 | Format | 16:9 landscape, 1920×1080, 30 fps. Put a file `videos/<slug>/FORMAT` containing `landscape` (the renderer reads it). |

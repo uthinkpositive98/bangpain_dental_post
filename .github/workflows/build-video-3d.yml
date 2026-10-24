@@ -1,0 +1,66 @@
+name: Build 3D video
+
+# cut3d episodes (1-minute vertical 3D cut-away Reels, house format since 2026-10-24).
+# Triggered by pushing videos/<slug>/job3d.json (any content, e.g. {"output": "<slug>.mp4"}).
+on:
+  push:
+    branches: [main]
+    paths: ["videos/**/job3d.json"]
+  workflow_dispatch:
+    inputs:
+      episode:
+        description: "Episode folder under videos/"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Find episodes to build
+        id: eps
+        run: |
+          if [ -n "${{ github.event.inputs.episode }}" ]; then
+            echo "list=videos/${{ github.event.inputs.episode }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "list=$(git diff --name-only HEAD~1 HEAD -- 'videos/**/job3d.json' | xargs -r -n1 dirname | sort -u | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install ffmpeg, three.js, Chromium
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          pip install -q numpy
+          cd tools/cut3d && npm install --no-audit --no-fund && npm install --no-save --no-audit --no-fund playwright@1.56.0 && npx playwright install --with-deps chromium
+
+      - name: Render
+        run: |
+          for ep in ${{ steps.eps.outputs.list }}; do
+            python3 tools/cut3d/build.py "$ep" 2>&1 | tee build.log; rc=${PIPESTATUS[0]}
+            if [ "$rc" != 0 ]; then tail -n 15 build.log | while IFS= read -r l; do echo "::error::$l"; done; exit "$rc"; fi
+          done
+
+      # Public URL: https://github.com/<owner>/<repo>/releases/download/<slug>/<slug>.mp4
+      - name: Publish to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for ep in ${{ steps.eps.outputs.list }}; do
+            tag=$(basename "$ep"); f="$ep/$tag.mp4"
+            if gh release view "$tag" >/dev/null 2>&1; then
+              gh release upload "$tag" "$f" --clobber
+            else
+              gh release create "$tag" "$f" --title "$tag" --notes "Auto-built 3D video for $tag"
+            fi
+            echo "https://github.com/${{ github.repository }}/releases/download/$tag/$tag.mp4"
+          done

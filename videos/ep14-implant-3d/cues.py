@@ -1,0 +1,18 @@
+# sound effects for ep14 — cues(B, bs, be, mk, cue, end_start); times are seconds on the story timeline (cover offset is added for you)
+def cues(B, bs, be, mk, cue, end_start):
+    a = bs(0); cue(a + .15, 'pop'); cue(a + .2, 'whoosh'); fk = mk(0, 'fake', .55); cue(fk + .05, 'slide_down', .25); cue(fk + .5, 'thud')
+    hit = mk(1, 'fly', .45); cue(hit - .35, 'whoosh'); cue(hit, 'thud', .9); cue(hit + .05, 'boing')
+    t3 = mk(2, 'so', 0); cue(bs(2), 'whoosh'); cue(t3 + .1, 'drill', .3); cue(t3 + 2.0, 'click'); cue(t3 + 2.05, 'sparkle', .3)
+    cue(bs(3) + .45, 'thud', .5); wob = mk(3, 'wobble', .55); cue(wob, 'boing', .45); cue(wob + .2, 'sad', .4)
+    a = bs(4); cue(a, 'whoosh'); he = mk(4, 'heal_end', .75); g0 = a + .4
+    for m in range(1, 7): cue(g0 + (he - g0) * m / 6.99, 'tick', .45)
+    cue(he, 'chime')
+    a = bs(5); cue(a, 'whoosh'); ab = mk(5, 'so', .55); cue(a + .2 + (ab - .3 - a - .2) / 2, 'boing', .3); cue(ab, 'slide_down', .3); cue(ab + .9, 'click')
+    cr = mk(6, 'so', .55); cue(cr, 'slide_down', .3); cue(cr + .55, 'ding'); cue(cr + .6, 'sparkle')
+    a = bs(7)
+    for k in range(5): cue(a + .5 + k * .2, 'pop', .25)
+    cue(mk(7, 'inflame', .65), 'sad', .45)
+    a = bs(8); cue(a + .1, 'scrub', .45); cue(a + B[8]['dur'] * .45, 'sparkle')
+    for n in ('c1', 'c2', 'c3'): cue(mk(8, n, 0) + .05, 'pop', .35)
+    a = bs(9); cue(a, 'whoosh'); cue(mk(9, 'no', .5), 'boing', .5); cue(mk(9, 'care', .7), 'ding')
+    cue(bs(10), 'fanfare'); cue(end_start + .15, 'sparkle')
