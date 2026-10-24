@@ -18,11 +18,30 @@ idx = np.where(on)[0]; t0, t1 = idx[0] * .01, idx[-1] * .01
 all_lines = [re.sub(r'\[[a-z ]+\]\s*', '', l).replace('|', '') for l in open(os.path.join(EP, 'script.txt'), encoding='utf-8').read().splitlines() if l.strip()]
 lines = all_lines[FIRST - 1:]
 L = np.array([len(l) for l in lines], float); exp = t0 + np.cumsum(L)[:-1] / L.sum() * (t1 - t0)
-cuts, last = [], 0
-for e in exp:
-    cand = [(abs((a + b) / 2 - e) - 1.2 * (b - a), a, b) for a, b in sil if (a + b) / 2 > last + .5]
-    if not cand: sys.exit('not enough pauses to split the take — generate the remaining lines separately')
-    _, a, b = min(cand); cuts.append((a, b)); last = (a + b) / 2
+# choose the cut pauses together (dynamic programming): every line's length should match its share of the
+# text (same speaking rate for all lines), and longer pauses are preferred as line breaks
+K = len(lines); E = L / L.sum() * (t1 - t0)
+mids = [(a + b) / 2 for a, b in sil]; lens = [b - a for a, b in sil]
+if len(mids) < K - 1: sys.exit('not enough pauses to split the take — generate the remaining lines separately')
+pts = [t0] + mids + [t1]                     # index 0 = start, 1..len(mids) = pauses, last = end
+def cost(i, j, k):                           # line k spans pts[i]..pts[j]
+    d = pts[j] - pts[i]; r = (d - E[k]) / E[k]
+    bonus = lens[j - 1] if 0 < j <= len(mids) else 0
+    return r * r * 4 - bonus * 1.5
+INF = float('inf'); n = len(pts)
+best = [[INF] * n for _ in range(K + 1)]; prev = [[-1] * n for _ in range(K + 1)]
+best[0][0] = 0
+for k in range(K):
+    for i in range(n):
+        if best[k][i] == INF: continue
+        for j in range(i + 1, n):
+            if (k == K - 1) != (j == n - 1): continue
+            c = best[k][i] + cost(i, j, k)
+            if c < best[k + 1][j]: best[k + 1][j] = c; prev[k + 1][j] = i
+j = n - 1; idx = []
+for k in range(K, 0, -1): idx.append(j); j = prev[k][j]
+idx = idx[::-1][:-1]
+cuts = [sil[i - 1] for i in idx]
 bounds = [max(0, t0 - .05)] + [(a + b) / 2 for a, b in cuts] + [t1 + .3]
 os.makedirs(os.path.join(EP, 'vo'), exist_ok=True)
 for k, line in enumerate(lines):

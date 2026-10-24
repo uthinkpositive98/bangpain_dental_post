@@ -245,12 +245,12 @@ export async function init(epDir) {
   await document.fonts.ready; await new Promise(r => { const im = document.querySelector('#end img'); im.complete ? r() : im.onload = r; });
 }
 
-/** episode frame(t, L) sets the scene + camera for time t and may return {blur, flash}; the end card is drawn on top automatically */
+/** episode frame(t, L) sets the scene + camera for time t and may return {blur, flash, filter} (filter = CSS filter for the 3D layer, e.g. an X-ray look); the end card is drawn on top automatically */
 export function runFrame(t, epFrame) {
   hideAll();
   const fx = epFrame(t) || {};
   renderer.render(scene, cam);
-  canvasEl.style.filter = fx.blur > .3 ? `blur(${fx.blur.toFixed(1)}px)` : 'none';
+  canvasEl.style.filter = [fx.filter || '', fx.blur > .3 ? `blur(${fx.blur.toFixed(1)}px)` : ''].join(' ').trim() || 'none';
   flashEl.style.opacity = fx.flash || 0;
   caption(t);
   const endA = seg(t, T.end.start, T.end.start + .35);
