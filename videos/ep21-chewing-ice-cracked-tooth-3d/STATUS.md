@@ -10,3 +10,9 @@ Not posted yet: the voice take could not be downloaded.
 To finish: put the take at `videos/ep21-chewing-ice-cracked-tooth-3d/take.mp3` (download it from the ElevenLabs flow),
 or allow `elevenlabsusercontent.com` for Claude's cloud sessions, then
 `python3 tools/cut3d/split_vo.py videos/ep21-chewing-ice-cracked-tooth-3d take.mp3 1` → `build.py --preview` → push job3d.json → schedule.
+
+## 2026-11-05 scheduled run
+Still blocked: `elevenlabsusercontent.com` is not reachable from this session, so the take (and any new take) cannot be downloaded.
+Nothing scheduled in Metricool for 2026-11-05. The signed take URL expires 2026-11-05 10:00 UTC; after that,
+get a fresh link from the ElevenLabs flow (generation `5uRbqM56TBAV1l9OafAx`) — no new credits needed.
+Fix: allow `elevenlabsusercontent.com` in claude.ai Settings > Capabilities (allowed domains), or commit take.mp3 here.
