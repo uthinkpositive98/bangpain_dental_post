@@ -1,0 +1,36 @@
+name: Facebook token check
+
+# ตรวจว่า ACCESS_TOKEN / FB_PAGE_ID ใน Secrets ใช้โพสต์ลงเพจคลินิกได้ (ไม่โพสต์อะไร ไม่แสดง token)
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check token
+        env:
+          TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+        run: |
+          set -u
+          G=https://graph.facebook.com/v27.0
+          [ -n "$TOKEN" ] || { echo "::error::ACCESS_TOKEN ว่าง"; exit 1; }
+          [ -n "$PAGE_ID" ] || { echo "::error::FB_PAGE_ID ว่าง"; exit 1; }
+          echo "== me (token เป็นของใคร)"
+          curl -sS "$G/me?fields=id,name" -H "Authorization: Bearer $TOKEN" | tee me.json; echo
+          echo "== page จาก FB_PAGE_ID"
+          curl -sS "$G/$PAGE_ID?fields=id,name,tasks" -H "Authorization: Bearer $TOKEN" | tee page.json; echo
+          echo "== debug_token (ชนิด, วันหมดอายุ, สิทธิ์)"
+          curl -sS "$G/debug_token?input_token=$TOKEN" -H "Authorization: Bearer $TOKEN" \
+            | jq '{is_valid: .data.is_valid, type: .data.type, app: .data.application, expires_at: .data.expires_at, data_access_expires_at: .data.data_access_expires_at, profile_id: .data.profile_id, scopes: .data.scopes, error: (.error // .data.error)}' | tee dbg.json
+          ME=$(jq -r '.id // empty' me.json)
+          echo
+          echo "me.id=$ME  FB_PAGE_ID=$PAGE_ID"
+          ok=1
+          [ "$(jq -r '.is_valid' dbg.json)" = "true" ] || { echo "::error::token ใช้ไม่ได้"; ok=0; }
+          [ "$(jq -r '.type' dbg.json)" = "PAGE" ] || { echo "::error::ไม่ใช่ Page token (type=$(jq -r .type dbg.json))"; ok=0; }
+          [ "$ME" = "$PAGE_ID" ] || { echo "::error::token ไม่ใช่ของเพจ FB_PAGE_ID"; ok=0; }
+          jq -e '.scopes | index("pages_manage_posts")' dbg.json >/dev/null || { echo "::error::ไม่มีสิทธิ์ pages_manage_posts"; ok=0; }
+          exp=$(jq -r '.expires_at' dbg.json); [ "$exp" = "0" ] && echo "หมดอายุ: ไม่หมดอายุ (Never)" || echo "::warning::token หมดอายุ epoch $exp"
+          [ $ok = 1 ] && echo "✅ ใช้โพสต์ลงเพจได้" || exit 1
