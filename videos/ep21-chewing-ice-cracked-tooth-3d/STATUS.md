@@ -27,3 +27,6 @@ as `videos/ep21-chewing-ice-cracked-tooth-3d/take.mp3` — the next run then fin
 
 ## 2026-11-07 23:45 (owner allowed elevenlabsusercontent.com)
 Take downloaded, split into vo/, real-timing preview OK; render triggered.
+
+## Done
+Rendered and scheduled in Metricool for 2026-11-08 19:00 (id 420103585).
