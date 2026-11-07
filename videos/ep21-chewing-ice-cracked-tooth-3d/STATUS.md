@@ -24,3 +24,6 @@ Metricool had nothing scheduled for 2026-11-07. Fresh signed link for the take (
 is available from the ElevenLabs flow `OOBZvVnuiKEJ9utp4rhC`, generation `5uRbqM56TBAV1l9OafAx`.
 Fix (owner): allow `elevenlabsusercontent.com` in claude.ai Settings > Capabilities (allowed domains), or commit the take
 as `videos/ep21-chewing-ice-cracked-tooth-3d/take.mp3` — the next run then finishes and schedules ep21.
+
+## 2026-11-07 23:45 (owner allowed elevenlabsusercontent.com)
+Take downloaded, split into vo/, real-timing preview OK; render triggered.
