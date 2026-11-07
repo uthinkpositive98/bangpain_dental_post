@@ -16,3 +16,11 @@ Still blocked: `elevenlabsusercontent.com` is not reachable from this session, s
 Nothing scheduled in Metricool for 2026-11-05. The signed take URL expires 2026-11-05 10:00 UTC; after that,
 get a fresh link from the ElevenLabs flow (generation `5uRbqM56TBAV1l9OafAx`) — no new credits needed.
 Fix: allow `elevenlabsusercontent.com` in claude.ai Settings > Capabilities (allowed domains), or commit take.mp3 here.
+
+## 2026-11-07 scheduled run
+Still blocked: `elevenlabsusercontent.com` is still refused by this session's network policy (403 at the proxy), so the
+existing take cannot be downloaded and a new take would be stuck the same way — no new credits spent, nothing scheduled.
+Metricool had nothing scheduled for 2026-11-07. Fresh signed link for the take (valid until 2026-11-07 10:00 UTC / 17:00 น.)
+is available from the ElevenLabs flow `OOBZvVnuiKEJ9utp4rhC`, generation `5uRbqM56TBAV1l9OafAx`.
+Fix (owner): allow `elevenlabsusercontent.com` in claude.ai Settings > Capabilities (allowed domains), or commit the take
+as `videos/ep21-chewing-ice-cracked-tooth-3d/take.mp3` — the next run then finishes and schedules ep21.
