@@ -20,7 +20,12 @@ jobs:
           echo "== me (token เป็นของใคร)"
           curl -sS "$G/me?fields=id,name" -H "Authorization: Bearer $TOKEN" | tee me.json; echo
           echo "== page จาก FB_PAGE_ID"
-          curl -sS "$G/$PAGE_ID?fields=id,name,tasks" -H "Authorization: Bearer $TOKEN" | tee page.json; echo
+          curl -sS "$G/$PAGE_ID?fields=id,name" -H "Authorization: Bearer $TOKEN" | tee page.json; echo
+          echo "== เพจที่ token นี้เข้าถึงได้ (me/accounts) — แสดงแค่ชื่อ/ID ว่ามี page token หรือไม่"
+          curl -sS "$G/me/accounts?fields=id,name,tasks,access_token" -H "Authorization: Bearer $TOKEN" \
+            | jq '{pages: [.data[]? | {id, name, tasks, has_page_token: (.access_token != null)}], error: .error.message}'
+          echo "== ขอ page token ของ FB_PAGE_ID ได้ไหม"
+          curl -sS "$G/$PAGE_ID?fields=access_token" -H "Authorization: Bearer $TOKEN" | jq '{has_page_token: (.access_token != null), error: .error.message}'
           echo "== debug_token (ชนิด, วันหมดอายุ, สิทธิ์)"
           curl -sS "$G/debug_token?input_token=$TOKEN" -H "Authorization: Bearer $TOKEN" \
             | jq '{is_valid: .data.is_valid, type: .data.type, app: .data.application, expires_at: .data.expires_at, data_access_expires_at: .data.data_access_expires_at, profile_id: .data.profile_id, scopes: .data.scopes, error: (.error // .data.error)}' | tee dbg.json
