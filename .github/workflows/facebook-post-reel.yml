@@ -1,0 +1,30 @@
+name: Facebook post Reel
+
+# โพสต์คลิปของตอนหนึ่งลงเพจคลินิกเป็น Reel ทันที (ไม่ผ่าน Metricool)
+# ใช้: Actions → Facebook post Reel → Run workflow → ใส่ slug เช่น ep22-after-extraction-24h-3d
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: "slug ของตอน (ชื่อโฟลเดอร์ใน videos/ และชื่อ Release)"
+        required: true
+
+concurrency:
+  group: facebook-post-reel
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - name: Post Reel
+        env:
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        run: python tools/post_reel.py "${{ inputs.slug }}"
