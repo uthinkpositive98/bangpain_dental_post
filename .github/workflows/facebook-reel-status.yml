@@ -1,0 +1,21 @@
+name: Facebook Reel status
+
+# ตรวจสถานะ Reel ที่โพสต์แล้ว (ไม่โพสต์อะไรเพิ่ม)
+on:
+  workflow_dispatch:
+    inputs:
+      ids:
+        description: "video id ของ Reel (คั่นด้วยช่องว่าง)"
+        required: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install requests
+      - env:
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        run: python tools/reel_status.py ${{ inputs.ids }}
