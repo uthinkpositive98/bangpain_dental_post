@@ -7,16 +7,21 @@ def mp3(wav, name):
 if eng == "edge":
     import edge_tts
     async def go():
-        for v in ["th-TH-PremwadeeNeural", "th-TH-AcharaNeural", "th-TH-NiwatNeural"]:
-            await edge_tts.Communicate(TEXT, v).save(f"/tmp/{v}.mp3"); mp3(f"/tmp/{v}.mp3", f"edge-tts_{v}")
+        vs = [v["ShortName"] for v in await edge_tts.list_voices() if v["Locale"].startswith("th")]
+        print("Thai voices:", vs)
+        for v in vs or ["th-TH-PremwadeeNeural", "th-TH-NiwatNeural"]:
+            try: await edge_tts.Communicate(TEXT, v).save(f"/tmp/{v}.mp3"); mp3(f"/tmp/{v}.mp3", f"edge-tts_{v}")
+            except Exception: traceback.print_exc()
     asyncio.run(go())
 elif eng == "gtts":
     from gtts import gTTS
     gTTS(TEXT, lang="th").save("/tmp/g.mp3"); mp3("/tmp/g.mp3", "gTTS_google-translate")
 elif eng == "pythaitts":
     from pythaitts import TTS
-    for pre, spk in [("vachana", "th_f_1"), ("vachana", "th_f_2"), ("vachana", "th_m_1"), ("vachana", "th_m_2"),
-                     ("khanomtan", "Linda"), ("lunarlist_onnx", None), ("fastthaig2p", "thai_som")]:
+    todo = [("vachana", "th_f_1"), ("vachana", "th_f_2"), ("vachana", "th_m_1"), ("vachana", "th_m_2"),
+            ("khanomtan", "Linda"), ("lunarlist_onnx", None), ("fastthaig2p", "thai_som")]
+    if len(sys.argv) > 3: todo = [x for x in todo if x[0] == sys.argv[3]]
+    for pre, spk in todo:
         try:
             t = TTS(pretrained=pre); f = f"/tmp/{pre}_{spk}.wav"
             t.tts(TEXT, speaker_idx=spk, filename=f) if spk else t.tts(TEXT, filename=f)
