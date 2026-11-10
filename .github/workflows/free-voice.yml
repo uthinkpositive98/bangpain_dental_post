@@ -29,7 +29,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
-      - run: pip install -q pythaitts "pythaitts[vachana]"
+      - run: pip install -q requests pythaitts "pythaitts[vachana]"
       - run: python tools/free_voice.py "videos/${{ inputs.slug }}" "${{ inputs.voice }}"
       - name: Commit voice files
         run: |
