@@ -36,7 +36,7 @@ jobs:
       - name: F5-TTS-THAI
         if: inputs.only == '' || inputs.only == 'f5th'
         continue-on-error: true
-        run: pip install -q torch torchaudio --index-url https://download.pytorch.org/whl/cpu && pip install -q f5-tts-th torchcodec pythaitts "pythaitts[vachana]" && python tools/tts_samples/make.py f5th out
+        run: pip install -q f5-tts-th pythaitts "pythaitts[vachana]" && pip uninstall -y -q torchcodec; pip install -q --force-reinstall --no-deps torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cpu && pip list 2>/dev/null | grep -iE "^torch|f5" ; python tools/tts_samples/make.py f5th out
       - name: KhanomTan (needs Coqui TTS)
         if: inputs.only == '' || inputs.only == 'khanomtan'
         continue-on-error: true
