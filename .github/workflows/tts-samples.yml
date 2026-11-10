@@ -1,0 +1,35 @@
+name: Thai TTS samples
+
+# สร้างเสียงตัวอย่างจากโมเดลเสียงไทยฟรี แล้วแนบไว้ที่ Release "tts-samples"
+on: workflow_dispatch
+
+permissions:
+  contents: write
+
+jobs:
+  samples:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg espeak-ng
+      - name: edge-tts
+        continue-on-error: true
+        run: pip install -q edge-tts && python tools/tts_samples/make.py edge out
+      - name: gTTS
+        continue-on-error: true
+        run: pip install -q gTTS && python tools/tts_samples/make.py gtts out
+      - name: PyThaiTTS
+        continue-on-error: true
+        run: pip install -q pythaitts && pip install -q "pythaitts[vachana]" "pythaitts[khanomtan]" "pythaitts[lunarlist_onnx]" "pythaitts[fastthaig2p]" 2>&1 | tail -3; python tools/tts_samples/make.py pythaitts out
+      - name: F5-TTS-THAI
+        continue-on-error: true
+        run: pip install -q torch torchaudio --index-url https://download.pytorch.org/whl/cpu && pip install -q f5-tts-th && python tools/tts_samples/make.py f5th out
+      - name: Publish
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          ls -la out
+          gh release view tts-samples >/dev/null 2>&1 || gh release create tts-samples --title "Thai TTS samples" --notes "เสียงตัวอย่างจากโมเดลเสียงไทยฟรี"
+          gh release upload tts-samples out/*.mp3 --clobber
