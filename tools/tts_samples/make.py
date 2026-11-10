@@ -10,8 +10,9 @@ if eng == "edge":
         vs = [v["ShortName"] for v in await edge_tts.list_voices() if v["Locale"].startswith("th")]
         print("Thai voices:", vs)
         for v in vs or ["th-TH-PremwadeeNeural", "th-TH-NiwatNeural"]:
-            try: await edge_tts.Communicate(TEXT, v).save(f"/tmp/{v}.mp3"); mp3(f"/tmp/{v}.mp3", f"edge-tts_{v}")
-            except Exception: traceback.print_exc()
+            for k in range(4):
+                try: await edge_tts.Communicate(TEXT, v, rate=["+0%", "+0%", "-5%", "+5%"][k]).save(f"/tmp/{v}.mp3"); mp3(f"/tmp/{v}.mp3", f"edge-tts_{v}"); break
+                except Exception as e: print("retry", v, k, repr(e)); await asyncio.sleep(5)
     asyncio.run(go())
 elif eng == "gtts":
     from gtts import gTTS

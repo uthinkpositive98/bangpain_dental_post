@@ -36,11 +36,11 @@ jobs:
       - name: F5-TTS-THAI
         if: inputs.only == '' || inputs.only == 'f5th'
         continue-on-error: true
-        run: pip install -q torch torchaudio --index-url https://download.pytorch.org/whl/cpu && pip install -q f5-tts-th torchcodec && python tools/tts_samples/make.py f5th out
+        run: pip install -q torch torchaudio --index-url https://download.pytorch.org/whl/cpu && pip install -q f5-tts-th torchcodec pythaitts "pythaitts[vachana]" && python tools/tts_samples/make.py f5th out
       - name: KhanomTan (needs Coqui TTS)
         if: inputs.only == '' || inputs.only == 'khanomtan'
         continue-on-error: true
-        run: pip install -q pythaitts coqui-tts && python tools/tts_samples/make.py pythaitts out khanomtan
+        run: pip install -q torch torchaudio --index-url https://download.pytorch.org/whl/cpu && pip install -q pythaitts coqui-tts && python tools/tts_samples/make.py pythaitts out khanomtan
       - name: Publish
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
