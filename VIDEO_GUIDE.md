@@ -62,6 +62,13 @@ gives the time that chunk is spoken, so actions land on the words (e.g. the fix 
    `creative_get_flow_run_status`, download `content_url` with curl, then `python3 tools/cut3d/split_vo.py videos/<slug> take.mp3 1`
    and check every clip length ≈ expected. If a split looks wrong, regenerate only the bad lines (one request each) and save them as `vo/NN.mp3`.
    On `429 rate_limited` nothing was charged: wait 2–5 minutes (do other work) and retry the same call, up to 6 times.
+   **ElevenLabs out of credits → free voice (owner's rule, 2026-11-11):** do NOT stop and do NOT post a silent video. Commit and push
+   `script.txt` first, then run the GitHub Actions workflow "Free voice (Vachana)":
+   `gh api -X POST repos/uthinkpositive98/bangpain_dental_post/actions/workflows/free-voice.yml/dispatches -f ref=main -f "inputs[slug]=<slug>"`
+   (voice `auto` alternates VachanaTTS **th_f_1** (female) and **th_m_2** (male) — only these two; the male voice rewrites ค่ะ/คะ → ครับ in
+   script.txt so the captions match). Wait for the run (~3–5 min), `git pull` to get `vo/NN.mp3` + the updated script.txt, and continue
+   with timeline/preview as usual. Vachana reads slower than ElevenLabs: set `tempo` 1.15–1.25 in episode.json so the clip stays ≤ 65 s.
+   Write the caption with "ค่ะ" for th_f_1 and "ครับ" for th_m_2, and say in the report which free voice was used.
 4. Local tools: `cd tools/cut3d && npm install` (installs three.js; Playwright + Chromium are preinstalled in the session, and the CI workflow installs its own).
    `python3 tools/cut3d/build.py videos/<slug> --preview` (~2 min) → **open `videos/<slug>/contact.jpg`** and fix: anything off-screen or hidden,
    chips overlapping, empty beats, a prop that pops in without motion, text clipped on the cover. Re-preview until clean.
@@ -116,8 +123,7 @@ Fixed IDs
 | Narration | Voice Nueng, one clip per scene (1–3 short sentences, ≤ 13 s), ~3,500–4,500 Thai characters in total (≈ 4–5k ElevenLabs credits). |
 | Post | Metricool `facebookData {"type":"POST","title":"<title>"}` (a 5-minute landscape video is a normal video post, not a REEL), `videoCoverMilliseconds` 2000 (the cover card). |
 
-- **No silent long videos.** If ElevenLabs refuses for lack of credits, do not post: commit what was made, and report
-  "ElevenLabs out of credits — episode <slug> not posted" so the owner can top up.
+- **No silent videos.** If ElevenLabs refuses for lack of credits, use the free Vachana voice (see "Pipeline (cut3d)" step 3).
 - **ElevenLabs rate limit.** Start one generation at a time. A `429 rate_limited` error means nothing was generated or
   charged: wait 60 s and retry that same call (up to 3 times). Poll `creative_get_flow_run_status` with ≤ 8 sessions
   per call. If a voice is not available on the account's plan, use another Thai female library voice and say so.
