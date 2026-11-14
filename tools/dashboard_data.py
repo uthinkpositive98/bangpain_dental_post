@@ -1,7 +1,7 @@
 """
 สร้างไฟล์ข้อมูลของแดชบอร์ด "Marketing System — คลินิกทันตกรรมบางปะอิน" จากสถิติที่ดึงมาจาก Facebook
 อ่าน: data/fb_stats.json, data/fb_history.json, data/clip_labels.json, data/ideas.json
-เขียน: <out>/summary.json clips.json patterns.json calendar.json ideas.json  (แต่ละไฟล์ = {rows, meta})
+เขียน: <out>/summary.json clips.json patterns.json calendar.json ideas.json daily.json  (แต่ละไฟล์ = {rows, meta})
 ใช้: python tools/dashboard_data.py [out_dir]
 """
 import datetime as dt
@@ -120,12 +120,22 @@ def main():
     for j in range(idea_i, len(ideas)):
         idea_rows.append({"rank": j + 1, "slot": "ถัดไป", **ideas[j]})
 
+    # วิวรายวัน: ยอดวิวสะสมของทุกคลิปในแต่ละวันที่เก็บสถิติ และส่วนที่เพิ่มจากวันก่อนหน้า (เฉพาะเมื่อมีสถิติของวันก่อนหน้าติดกัน)
+    daily, prev_d, prev_total = [], None, None
+    for iso in sorted(hist)[-60:]:
+        d = dt.date.fromisoformat(iso)
+        total = sum((v[0] or 0) for v in hist[iso]["clips"].values())
+        gain = total - prev_total if prev_d is not None and (d - prev_d).days == 1 else None
+        daily.append({"date": iso, "label": f"{d.day} {TH_MONTH[d.month - 1]}", "total_views": total, "gain": gain,
+                      "followers": hist[iso].get("followers")})
+        prev_d, prev_total = d, total
+
     code = open(__file__, encoding="utf-8").read()
     meta = [{"label": "dashboard_data.py", "value": code, "type": "code", "lang": "python"},
             {"label": "ข้อมูลต้นทาง", "value": f"Facebook Graph API ดึงเมื่อ {thai_dt(fetched)} (data/fb_stats.json ใน GitHub repo bangpain_dental_post)"}]
     import os
     os.makedirs(out, exist_ok=True)
-    for name, rows in (("summary", summary), ("clips", clips), ("patterns", patterns), ("calendar", cal), ("ideas", idea_rows)):
+    for name, rows in (("summary", summary), ("clips", clips), ("patterns", patterns), ("calendar", cal), ("ideas", idea_rows), ("daily", daily)):
         with open(f"{out}/{name}.json", "w", encoding="utf-8") as fh:
             json.dump({"rows": rows, "meta": meta}, fh, ensure_ascii=False)
     print(json.dumps(summary[0], ensure_ascii=False, indent=1))
