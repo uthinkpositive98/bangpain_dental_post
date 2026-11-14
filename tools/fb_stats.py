@@ -120,29 +120,50 @@ def main():
 
     # ลองขอตัวเลขเชิงลึก (ต้องมี read_insights) — ลองกับคลิปล่าสุดคลิปเดียวก่อน ถ้าได้ค่อยขอทั้งหมด
     clips.sort(key=lambda c: c["created"] or "", reverse=True)
-    deep_metrics = "blue_reels_play_count,post_impressions_unique,post_video_avg_time_watched,fb_reels_total_plays"
+    vm_try = ["blue_reels_play_count", "fb_reels_total_plays", "post_impressions_unique", "post_video_avg_time_watched",
+              "post_video_view_time", "post_video_social_actions", "post_video_views", "total_video_impressions_unique",
+              "total_video_avg_time_watched", "total_video_views"]
+    vm_ok = []
     if clips:
-        probe, err = get(f"{clips[0]['id']}/video_insights", metric=deep_metrics)
-        if err:
-            unavailable.append({"what": "video_insights (reach, เวลาดูเฉลี่ย)", "why": err})
-        else:
+        for m in vm_try:  # ลองทีละตัวกับคลิปล่าสุด เก็บเฉพาะตัวที่ Facebook ยอมให้
+            d, err = get(f"{clips[0]['id']}/video_insights", metric=m)
+            if err is None and d.get("data"):
+                vm_ok.append(m)
+            elif err:
+                unavailable.append({"what": f"video_insights:{m}", "why": err})
+        if vm_ok:
             for c in clips[:40]:
-                d, e = (probe, None) if c is clips[0] else get(f"{c['id']}/video_insights", metric=deep_metrics)
+                d, e = get(f"{c['id']}/video_insights", metric=",".join(vm_ok))
                 if d:
                     c["insights"] = {m["name"]: (m.get("values") or [{}])[0].get("value") for m in d.get("data", [])}
-    pi, err = get(f"{PAGE}/insights", metric="page_impressions_unique,page_post_engagements,page_video_views",
-                  period="day", since=int((now - dt.timedelta(days=28)).timestamp()), until=int(now.timestamp()))
-    page_insights = None
-    if err:
-        unavailable.append({"what": "page insights (reach เพจรายวัน)", "why": err})
-    else:
-        page_insights = {m["name"]: [{"d": v.get("end_time", "")[:10], "v": v.get("value")} for v in m.get("values", [])]
-                         for m in pi.get("data", [])}
+    page_insights = {}
+    for m in ["page_impressions_unique", "page_post_engagements", "page_video_views", "page_views_total",
+              "page_daily_follows_unique", "page_follows"]:
+        pi, err = get(f"{PAGE}/insights", metric=m, period="day",
+                      since=int((now - dt.timedelta(days=28)).timestamp()), until=int(now.timestamp()))
+        if err:
+            unavailable.append({"what": f"page_insights:{m}", "why": err})
+        elif pi.get("data"):
+            page_insights[m] = [{"d": v.get("end_time", "")[:10], "v": v.get("value")} for v in pi["data"][0].get("values", [])]
+    page_insights = page_insights or None
 
     other_posts = []
     clip_post_ids = {p["id"] for p in post_by_target.values()}
+
+    def is_clip_post(p):
+        # ไม่มีสิทธิ์อ่าน attachments ก็จับคู่ด้วยข้อความ+เวลา (โพสต์ของ Reel ถูกสร้างภายในไม่กี่นาทีหลังคลิป)
+        t = (p.get("message") or "").strip()
+        for c in clips:
+            if not c["created"] or not p.get("created_time"):
+                continue
+            gap = abs((dt.datetime.fromisoformat(p["created_time"].replace("+0000", "+00:00"))
+                       - dt.datetime.fromisoformat(c["created"].replace("+0000", "+00:00"))).total_seconds())
+            if gap <= 600 and (not t or not c["text"] or t[:30] == c["text"][:30]):
+                return True
+        return False
+
     for p in posts:
-        if p["id"] in clip_post_ids:
+        if p["id"] in clip_post_ids or is_clip_post(p):
             continue
         other_posts.append({
             "id": p["id"], "created": p.get("created_time"), "text": (p.get("message") or "").strip()[:300],
