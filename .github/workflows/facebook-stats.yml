@@ -1,10 +1,10 @@
 name: Facebook stats
 
 # ดึงสถิติเพจคลินิก (อ่านอย่างเดียว ไม่โพสต์อะไร) เก็บลง data/fb_stats.json + data/fb_history.json
-# รันเองทุกวัน 05:30 น. (เวลาไทย) ก่อนสรุปเช้า 6:00 — หรือกด Run workflow เองได้
+# รันเองทุกวัน ~04:47 น. (เวลาไทย) ก่อนสรุปเช้า 6:00 — หรือกด Run workflow เองได้
 on:
   schedule:
-    - cron: "30 22 * * *"
+    - cron: "47 21 * * *"
   workflow_dispatch:
 
 permissions:
