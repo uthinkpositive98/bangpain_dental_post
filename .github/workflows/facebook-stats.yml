@@ -1,0 +1,40 @@
+name: Facebook stats
+
+# ดึงสถิติเพจคลินิก (อ่านอย่างเดียว ไม่โพสต์อะไร) เก็บลง data/fb_stats.json + data/fb_history.json
+# รันเองทุกวัน 05:30 น. (เวลาไทย) ก่อนสรุปเช้า 6:00 — หรือกด Run workflow เองได้
+on:
+  schedule:
+    - cron: "30 22 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: facebook-stats
+  cancel-in-progress: false
+
+jobs:
+  stats:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - name: Fetch stats
+        env:
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        run: python tools/fb_stats.py
+      - name: Commit data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/fb_stats.json data/fb_history.json
+          git diff --cached --quiet && { echo "ไม่มีอะไรเปลี่ยน"; exit 0; }
+          git commit -m "stats: $(TZ=Asia/Bangkok date +%F) [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
