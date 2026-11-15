@@ -45,4 +45,4 @@ Each line: working title — the funny angle. Rotate categories. Add new ideas i
 - กลิ่นปากตอนเช้ามาจากไหน (ep12, done)
 - ใช้ฟันเปิดขวด ฉีกซอง — ฟันไม่ใช่กรรไกร
 - เด็กติดขวดนมตอนนอน
-- สูบบุหรี่กับเหงือก
+- สูบบุหรี่กับเหงือก (ep28, done)
